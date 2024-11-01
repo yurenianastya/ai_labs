@@ -7,7 +7,6 @@ class Player():
 
     def __init__(self, position):
         self.position = position
-        self.speed = 0
         self.velocity = pygame.math.Vector2()
 
 
@@ -15,14 +14,15 @@ class Agent:
 
     def __init__(self, position):
         self.position = position
-        self.velocity = pygame.Vector2()
+        self.velocity = pygame.Vector2(1,0)
         self.heading = pygame.Vector2()
         self.acceleration = pygame.Vector2()
         self.side = pygame.Vector2()
         self.mass = 1.0
         self.max_turn_rate = 0.5 # radians per second
-        self.max_speed = 0.1
+        self.max_speed = 0.05
         self.state = sb.SteeringBehaviors(self)
+        self.wander_target = pygame.math.Vector2(1, 0)
 
     
     def truncate(self, vec, max_len):
@@ -43,7 +43,7 @@ class Agent:
 
 
     def update(self, time_elapsed):
-        steering_force = self.state.arrive((50,50), sb.Deceleration.FAST.value)
+        steering_force = self.state.wander(15, 3, 10)
         # acceleration = force / mass
         self.acceleration = steering_force / self.mass
         self.velocity += self.acceleration * time_elapsed

@@ -12,10 +12,15 @@ SCREEN_HEIGHT = 800
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Zombie attack")
 CLOCK = pygame.time.Clock()
-ZOMBIE_POS = pygame.Vector2(500,100)
-ZOMBIE_VELOCITY = pygame.Vector2(2,0)
 
-zombie = entity.Agent(ZOMBIE_POS)
+zombies = [
+    entity.Agent((520,100)),
+    entity.Agent((540,100)),
+    entity.Agent((560,100)),
+    entity.Agent((580,100)),
+    entity.Agent((480,100)),
+    entity.Agent((460,100))
+]
 
 def draw_triangle(surface, pos):
     length = 20
@@ -30,10 +35,10 @@ def draw_triangle(surface, pos):
 
 def create_obstacles():
     pygame.draw.circle(SCREEN, COLOR_OBSTACLES, (100, 500), 110)
-    pygame.draw.circle(SCREEN, COLOR_OBSTACLES, (500, 400), 140)
+    pygame.draw.circle(SCREEN, COLOR_OBSTACLES, (500, 400), 100)
     pygame.draw.circle(SCREEN, COLOR_OBSTACLES, (800, 100), 80)
-    pygame.draw.circle(SCREEN, COLOR_OBSTACLES, (0, 0), 60)
-    pygame.draw.circle(SCREEN, COLOR_OBSTACLES, (900, 700), 100)
+    pygame.draw.circle(SCREEN, COLOR_OBSTACLES, (300, 200), 100)
+    pygame.draw.circle(SCREEN, COLOR_OBSTACLES, (900, 600), 80)
 
 
 # Game running
@@ -46,9 +51,9 @@ while running:
     SCREEN.fill((0, 0, 0))
 
     create_obstacles()
-    zombie.update(30)
-    pygame.draw.circle(SCREEN, COLOR_RED, zombie.position, 10)
-    zombie.wrap_around(SCREEN_WIDTH, SCREEN_HEIGHT)
-
+    for zombie in zombies:
+        zombie.update(30)
+        pygame.draw.circle(SCREEN, COLOR_RED, zombie.position, 10)
+        zombie.wrap_around(SCREEN_WIDTH, SCREEN_HEIGHT)
     pygame.display.flip()
     CLOCK.tick(60)

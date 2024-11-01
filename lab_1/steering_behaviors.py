@@ -1,4 +1,6 @@
 import pygame
+import random
+import math
 from enum import Enum
 
 class Deceleration(Enum):
@@ -50,5 +52,40 @@ class SteeringBehaviors():
         relative_heading = self.agent.heading.dot(evader.heading)
         if dist_to_evader.dot(self.agent.heading) > 0 and relative_heading < -0.95:
             return self.seek(evader.position)
-        look_ahead_time = dist_to_evader.length() / self.agent.max_speed + evader.speed
+        look_ahead_time = dist_to_evader.length() / self.agent.max_speed + evader.velocity.length()
         return self.seek(evader.position + evader.velocity * look_ahead_time)
+    
+
+    def evade(self, pursuer):
+        dist_to_pursuer = pursuer.position - self.agent.position
+        look_ahead_time = dist_to_pursuer.length() / self.agent.max_speed + pursuer.velocity.length()
+        return self.flee(pursuer.position + pursuer.velocity * look_ahead_time)
+    
+
+    def wander(self, wander_distance, wander_jitter, wander_radius):
+        self.agent.wander_target += pygame.math.Vector2(
+            random.uniform(-1, 1) * wander_jitter,
+            random.uniform(-1, 1) * wander_jitter
+            )
+        self.agent.wander_target = self.agent.wander_target.normalize() * wander_radius
+        target_local = self.agent.wander_target + pygame.math.Vector2(wander_distance, 0)
+
+        current_direction = self.agent.velocity.normalize()
+        
+        desired_direction = target_local.normalize()
+
+        angle_to_target = math.atan2(desired_direction.y, desired_direction.x) - math.atan2(current_direction.y, current_direction.x)
+        angle_to_target = (angle_to_target + math.pi) % (2 * math.pi) - math.pi
+        clamped_angle = max(-self.agent.max_turn_rate, min(self.agent.max_turn_rate, angle_to_target))
+
+        cos_angle = math.cos(clamped_angle)
+        sin_angle = math.sin(clamped_angle)
+        rotated_direction = pygame.math.Vector2(
+            current_direction.x * cos_angle - current_direction.y * sin_angle,
+            current_direction.x * sin_angle + current_direction.y * cos_angle
+            )
+
+        self.agent.velocity = rotated_direction * self.agent.max_speed
+        
+        target_world = self.agent.position + self.agent.velocity
+        return target_world - self.agent.position
