@@ -1,7 +1,9 @@
 import pygame
 import random
 import math
+import constants
 from enum import Enum
+
 
 class Deceleration(Enum):
     SLOW = 5
@@ -16,20 +18,28 @@ class SteeringBehaviors():
         self.agent = agent
 
 
-    def calculate(self):
-        pass
+    def calculate(self, obstacles):
+        return self.wander(5, 2, 10) - self.obstacle_avoidance(obstacles)
+    
+
+    def rotate_point(point, angle):
+        """Rotates a point around the origin (0, 0) by an angle."""
+        cos_theta = math.cos(angle)
+        sin_theta = math.sin(angle)
+        x, y = point
+        return pygame.Vector2(x * cos_theta - y * sin_theta, x * sin_theta + y * cos_theta)
 
 
     def seek(self, target_pos):
-        desired_velocity = pygame.math.Vector2.normalize(target_pos - self.agent.position) * self.agent.max_speed
+        desired_velocity = pygame.Vector2.normalize(target_pos - self.agent.position) * self.agent.max_speed
         return desired_velocity - self.agent.velocity
     
 
     def flee(self, target_pos):
         panic_distance = 50 * 50
         if self.agent.position.distance_squared_to(target_pos) > panic_distance:
-            return pygame.math.Vector2(0,0)
-        desired_velocity = pygame.math.Vector2.normalize(self.agent.position - target_pos) * self.agent.max_speed
+            return pygame.Vector2(0,0)
+        desired_velocity = pygame.Vector2.normalize(self.agent.position - target_pos) * self.agent.max_speed
         return desired_velocity - self.agent.velocity
     
 
@@ -43,7 +53,7 @@ class SteeringBehaviors():
             speed = min(speed, self.agent.max_speed)
             desired_velocity = to_target * speed / distance
             return (desired_velocity - self.agent.velocity)
-        return pygame.math.Vector2(0,0)
+        return pygame.Vector2(0,0)
     
 
     def pursuit(self, evader):
@@ -63,12 +73,12 @@ class SteeringBehaviors():
     
 
     def wander(self, wander_distance, wander_jitter, wander_radius):
-        self.agent.wander_target += pygame.math.Vector2(
+        self.agent.wander_target += pygame.Vector2(
             random.uniform(-1, 1) * wander_jitter,
             random.uniform(-1, 1) * wander_jitter
             )
         self.agent.wander_target = self.agent.wander_target.normalize() * wander_radius
-        target_local = self.agent.wander_target + pygame.math.Vector2(wander_distance, 0)
+        target_local = self.agent.wander_target + pygame.Vector2(wander_distance, 0)
 
         current_direction = self.agent.velocity.normalize()
         
@@ -80,7 +90,7 @@ class SteeringBehaviors():
 
         cos_angle = math.cos(clamped_angle)
         sin_angle = math.sin(clamped_angle)
-        rotated_direction = pygame.math.Vector2(
+        rotated_direction = pygame.Vector2(
             current_direction.x * cos_angle - current_direction.y * sin_angle,
             current_direction.x * sin_angle + current_direction.y * cos_angle
             )
@@ -89,3 +99,21 @@ class SteeringBehaviors():
         
         target_world = self.agent.position + self.agent.velocity
         return target_world - self.agent.position
+    
+
+    def obstacle_avoidance(self, obstacles):
+        detection_box_length = constants.MIN_DETECTION  + self.agent.velocity.magnitude() / self.agent.max_speed + constants.MAX_DETECTION
+        avoidance_force = pygame.Vector2(0, 0)
+        for obstacle in obstacles:
+            to_obstacle = obstacle.position - self.agent.position
+            distance = to_obstacle.length()
+            if distance < detection_box_length + obstacle.radius:
+                right = self.agent.velocity.rotate(90).normalize()
+                if to_obstacle.dot(right) > 0:  # If obstacle is on the right
+                    lateral_force = right * constants.MAX_AVOID_FORCE
+                else:  # If obstacle is on the left
+                    lateral_force = -right * constants.MAX_AVOID_FORCE
+                avoidance_force += lateral_force
+        return avoidance_force
+
+        
