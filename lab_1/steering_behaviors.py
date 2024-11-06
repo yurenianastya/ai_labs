@@ -22,13 +22,6 @@ class SteeringBehaviors():
         return self.wander(5, 2, 10) - self.obstacle_avoidance(obstacles)
     
 
-    def rotate_point(point, angle):
-        """Rotates a point around the origin (0, 0) by an angle."""
-        cos_theta = math.cos(angle)
-        sin_theta = math.sin(angle)
-        x, y = point
-        return pygame.Vector2(x * cos_theta - y * sin_theta, x * sin_theta + y * cos_theta)
-
 
     def seek(self, target_pos):
         desired_velocity = pygame.Vector2.normalize(target_pos - self.agent.position) * self.agent.max_speed

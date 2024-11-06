@@ -1,11 +1,11 @@
 import pygame
-import math
 import entity
 import constants
 
 pygame.init()
 pygame.display.set_caption("Zombie attack")
 
+player = entity.Player([constants.SCREEN_WIDTH // 2, constants.SCREEN_HEIGHT // 2])
 zombies = [
     entity.Agent((520,440)),
     entity.Agent((500,420)),
@@ -14,16 +14,6 @@ zombies = [
     entity.Agent((500,440)),
     entity.Agent((480,420))
 ]
-
-def draw_triangle(surface, pos):
-    length = 20
-    angle = 60
-    points = [
-        pos + pygame.Vector2(math.cos(angle), math.sin(angle)) * length,
-        pos + pygame.Vector2(math.cos(angle + 2.5), math.sin(angle + 2.5)) * length,
-        pos + pygame.Vector2(math.cos(angle - 2.5), math.sin(angle - 2.5)) * length,
-    ]
-    pygame.draw.polygon(surface, constants.COLOR_RED, points)
 
 
 def draw_obstacles():
@@ -37,9 +27,15 @@ def draw_zombies():
         zombie.update(30)
         zombie.draw()
 
+    
+def draw_player(current_time, keys):
+    player.draw_and_update(current_time, keys)
+
+
 # Game running
 running = True
 while running:
+    current_time = pygame.time.get_ticks()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -48,6 +44,8 @@ while running:
 
     draw_obstacles()
     draw_zombies()
+    keys = pygame.key.get_pressed()
+    draw_player(current_time, keys)
 
     pygame.display.flip()
     constants.CLOCK.tick(60)
