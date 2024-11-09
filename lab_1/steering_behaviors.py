@@ -1,7 +1,7 @@
 import pygame
 import random
 import math
-import constants
+import utils
 from enum import Enum
 
 
@@ -18,9 +18,20 @@ class SteeringBehaviors():
         self.agent = agent
 
 
-    def calculate(self, obstacles):
-        return self.wander(5, 2, 10) - self.obstacle_avoidance(obstacles)
+    def calculate(self, neighbors, player):
+        steering_force = pygame.Vector2(0,0)
+
+        steering_force += self.evade(player)
+
+        return utils.truncate(steering_force)
     
+
+    def point_to_world_space(point, agent_position, heading, side):
+        world_x = point.x * heading.x + point.y * side.x
+        world_y = point.x * heading.y + point.y * side.y
+        rotated_point = pygame.Vector2(world_x, world_y)
+        world_point = rotated_point + agent_position
+        return world_point
 
 
     def seek(self, target_pos):
@@ -29,7 +40,7 @@ class SteeringBehaviors():
     
 
     def flee(self, target_pos):
-        panic_distance = 50 * 50
+        panic_distance = 250 * 250
         if self.agent.position.distance_squared_to(target_pos) > panic_distance:
             return pygame.Vector2(0,0)
         desired_velocity = pygame.Vector2.normalize(self.agent.position - target_pos) * self.agent.max_speed
@@ -95,7 +106,7 @@ class SteeringBehaviors():
     
 
     def obstacle_avoidance(self, obstacles):
-        detection_box_length = constants.MIN_DETECTION  + self.agent.velocity.magnitude() / self.agent.max_speed + constants.MAX_DETECTION
+        detection_box_length = utils.MIN_DETECTION  + self.agent.velocity.magnitude() / self.agent.max_speed + utils.MAX_DETECTION
         avoidance_force = pygame.Vector2(0, 0)
         for obstacle in obstacles:
             to_obstacle = obstacle.position - self.agent.position
@@ -103,10 +114,81 @@ class SteeringBehaviors():
             if distance < detection_box_length + obstacle.radius:
                 right = self.agent.velocity.rotate(90).normalize()
                 if to_obstacle.dot(right) > 0:  # If obstacle is on the right
-                    lateral_force = right * constants.MAX_AVOID_FORCE
+                    lateral_force = right * utils.MAX_AVOID_FORCE
                 else:  # If obstacle is on the left
-                    lateral_force = -right * constants.MAX_AVOID_FORCE
+                    lateral_force = -right * utils.MAX_AVOID_FORCE
                 avoidance_force += lateral_force
         return avoidance_force
+    
 
-        
+    def interpose(self, agent_a, agent_b):
+        mid_point = (agent_a.position + agent_b.position) / 2.0
+        time_to_mid_point = pygame.Vector2.distance_to(self.agent.position, mid_point) / self.agent.max_speed
+        A_pos = agent_a.position + agent_a.velocity * time_to_mid_point
+        B_pos = agent_b.position + agent_b.velocity * time_to_mid_point
+        mid_point = (A_pos + B_pos) / 2.0
+        return self.arrive(mid_point, Deceleration.FAST) 
+    
+
+    def get_hiding_position(obstacle_pos, obstacle_r, target_pos):
+        dist_from_boundary = 30.0
+        distance_away = obstacle_r + dist_from_boundary
+        vec_to_obstacle = pygame.Vector2.normalize(obstacle_pos - target_pos)
+        return (vec_to_obstacle * distance_away) + obstacle_pos
+    
+
+    def hide(self, target, obstacles):
+        dist_to_closest = float('inf')
+        best_hiding_spot = None
+        for obstacle in obstacles:
+            hiding_spot = SteeringBehaviors.get_hiding_position(obstacle.position, obstacle.radius, target.position)
+            distance = pygame.Vector2.distance_squared_to(hiding_spot, self.agent.position)
+            if distance < dist_to_closest:
+                dist_to_closest = distance
+                best_hiding_spot = hiding_spot
+        if (dist_to_closest == float('inf')):
+            return self.evade(target)
+        return self.arrive(best_hiding_spot, Deceleration.FAST)
+    
+
+    def offset_pursuit(self, leader_agent, offset):
+        world_offset_pos = SteeringBehaviors.point_to_world_space(
+            offset,leader_agent.position, leader_agent.heading, leader_agent.side)
+        to_offset = world_offset_pos - self.agent.position
+        look_ahead_time = to_offset.length() / ( self.agent.max_speed + leader_agent.velocity.length() )
+        return self.arrive(world_offset_pos + leader_agent.velocity.length() * look_ahead_time, Deceleration.FAST)
+
+
+    def separation(self, neighbors):
+        steering_force = pygame.Vector2(0,0)
+        for neighbor in neighbors:
+            if neighbor != self:
+                to_agent = self.agent.position - neighbor.position
+                steering_force += to_agent.normalize() / to_agent.length()
+        return steering_force
+    
+
+    def alignment(self, neighbors):
+        average_heading = pygame.Vector2(0,0)
+        neighbor_count = 0
+        for neighbor in neighbors:
+            if neighbor != self:
+                average_heading += neighbor.heading
+                neighbor_count += 1
+        if neighbor_count > 0:
+            average_heading /= neighbor_count
+            average_heading -= self.agent.heading
+        return average_heading
+    
+
+    def cohesion(self, neighbors):
+        center_of_mass, steering_force = pygame.Vector2(0, 0), pygame.Vector2(0, 0)
+        neighbor_count = 0
+        for neighbor in neighbors:
+            if neighbor != self:
+                center_of_mass += neighbor.position
+                neighbor_count += 1 
+        if neighbor_count > 0:
+            center_of_mass /= neighbor_count
+            steering_force = self.seek(center_of_mass)
+        return steering_force
