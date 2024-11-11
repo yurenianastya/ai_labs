@@ -16,6 +16,7 @@ class Player():
         self.position = pygame.Vector2(initial_pos)
         self.prev_position = pygame.Vector2(initial_pos) # To track previous position for velocity
         self.velocity = pygame.Vector2(0,0)
+        self.heading = pygame.Vector2(1,0)
         self.angle = 0
         self.speed = 3
         self.bullets = []
@@ -41,6 +42,8 @@ class Player():
         if keys[pygame.K_DOWN]:
             self.position.x -= self.speed * math.cos(rad_angle)
             self.position.y += self.speed * math.sin(rad_angle)
+        else:
+            self.velocity = pygame.Vector2(0, 0) 
 
         self.velocity = self.position - self.prev_position
         self.rotate_player()
@@ -49,6 +52,11 @@ class Player():
             if current_time - self.last_shot > self.shoot_delay:
                 self.shoot_bullet()
                 self.last_shot = current_time
+    
+
+    def update_heading(self):
+        if self.velocity.length_squared() > 0:
+            self.heading = self.velocity.normalize()
 
     
     def rotate_player(self):
@@ -98,6 +106,7 @@ class Player():
     def draw_and_update(self, current_time, keys):
         self.draw_direction_vector()
         self.get_movement_keys(keys, current_time)
+        self.update_heading()
         pygame.draw.polygon(utils.SCREEN, utils.COLOR_PLAYER, [(p.x, p.y) for p in self.points])
         self.update_bullets()
         self.wrap_around(utils.SCREEN_WIDTH, utils.SCREEN_HEIGHT)
@@ -110,13 +119,15 @@ class Zombie:
         self.radius = 7
         self.velocity = pygame.Vector2(1,0)
         self.heading = pygame.Vector2()
+        self.smoothed_heading = pygame.Vector2()
         self.acceleration = pygame.Vector2()
         self.side = pygame.Vector2()
         self.mass = 1.0
         self.max_turn_rate = 0.5 # radians per second
-        self.max_speed = 0.05
+        self.max_speed = 0.1
         self.state = sb.SteeringBehaviors(self)
         self.wander_target = pygame.Vector2(1, 0)
+        self.smoothing = 0.1
 
     
     def draw(self):
@@ -127,6 +138,9 @@ class Zombie:
         return pygame.Vector2(-vec.y, vec.x)
     
 
+    def lerp(self, start, end, alpha):
+        return start + (end - start) * alpha
+
     def wrap_around(self, max_x, max_y):
         self.position.x = self.position.x % (max_x + 1)
         self.position.y = self.position.y % (max_y + 1)
@@ -136,8 +150,8 @@ class Zombie:
         neighbors = []
         for zombie in zombies:
             vector_to = zombie.position - self.position
-            range = zombie.radius + radius
-            if zombie != self and vector_to.length_squared() < range ** 2:
+            tag_range = zombie.radius + radius
+            if zombie != self and vector_to.length_squared() < tag_range ** 2:
                 neighbors.append(zombie)
         return neighbors
 
@@ -151,7 +165,8 @@ class Zombie:
             utils.truncate(self.velocity, self.max_speed)
         self.position += self.velocity * time_elapsed
         if self.velocity.length_squared() > 0.000001:
-            self.heading = self.velocity.normalize()
+            desired_heading = self.velocity.normalize()
+            self.heading = self.lerp(self.heading, desired_heading, self.smoothing)
             self.side = Zombie.perp(self.heading)
         self.wrap_around(utils.SCREEN_WIDTH, utils.SCREEN_HEIGHT)
 
