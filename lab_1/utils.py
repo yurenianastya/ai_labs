@@ -5,17 +5,16 @@ COLOR_OBSTACLES = (71, 105, 91)
 COLOR_BULLET = (255, 255, 255)  
 COLOR_PLAYER =  (0, 0, 255)
 COLOR_GUN = (255, 0, 0)
-SCREEN_WIDTH = 1200
-SCREEN_HEIGHT = 800
+SCREEN_WIDTH = 1600
+SCREEN_HEIGHT = 900
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 CLOCK = pygame.time.Clock()
 
-MIN_DETECTION = 10
-MAX_DETECTION = 25
-MAX_AVOID_FORCE = 2
+MIN_DETECTION = 30
+MAX_DETECTION = 50
 MAX_STEERING_FORCE = 1.5
-NEIGHBOR_RADIUS = 40
-PANIC_DISTANCE = 250
+NEIGHBOR_RADIUS = 100
+PANIC_DISTANCE = 200
 
 OBSTACLES_POS = [
     [pygame.math.Vector2(120, 500), 100],
@@ -38,7 +37,14 @@ ZOMBIES_POS = [
     pygame.math.Vector2(40,320),
     pygame.math.Vector2(10,10),
     pygame.math.Vector2(50,900),
+    pygame.math.Vector2(60,40),
+    pygame.math.Vector2(20,40),
     pygame.math.Vector2(40,40),
+    pygame.math.Vector2(700,40),
+    pygame.math.Vector2(500,600),
+    pygame.math.Vector2(70,400),
+    pygame.math.Vector2(0,30),
+    pygame.math.Vector2(40,405),
 ]
 
 def truncate(vec, max_len=MAX_STEERING_FORCE):

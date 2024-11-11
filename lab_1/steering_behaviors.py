@@ -20,18 +20,21 @@ class SteeringBehaviors():
 
     def calculate(self, neighbors, player):
         steering_force = pygame.Vector2(0, 0)
-        steering_force += self.obstacle_avoidance(utils.obstacles) * 0.7
-        steering_force += self.separation(neighbors) * 0.4
-        steering_force += self.wander(3,2,5) * 0.05
+        is_close_to_player = self.agent.position.distance_squared_to(player.position) <= utils.PANIC_DISTANCE ** 2
+        steering_force += self.obstacle_avoidance(utils.obstacles) * 0.9
+        steering_force += self.separation(neighbors) * 0.7
 
-        if self.agent.position.distance_to(player.position) <= utils.PANIC_DISTANCE:
-            if len(neighbors) < 4:
-                steering_force += self.hide(player, utils.obstacles) * 0.3
-                steering_force += self.flee(player.position) * 0.5
-                steering_force += self.cohesion(neighbors) * 0.45
         if len(neighbors) > 4:
-            steering_force += self.alignment(neighbors) * 0.35
-            steering_force += self.pursuit(player) * 0.6
+            steering_force += self.alignment(neighbors) * 0.5
+            steering_force += self.pursuit(player) * 0.8
+        elif len(neighbors) <= 4:
+            if is_close_to_player:
+                steering_force += self.hide(player, utils.obstacles) * 0.5
+                steering_force += self.flee(player.position) * 0.5
+            else:
+                steering_force += self.wander(3,2,5) * 0.5
+                steering_force += self.cohesion(neighbors) * 0.4
+
         return utils.truncate(steering_force)
     
 
@@ -49,7 +52,7 @@ class SteeringBehaviors():
     
 
     def flee(self, target_pos):
-        if self.agent.position.distance_squared_to(target_pos) > utils.PANIC_DISTANCE * 2:
+        if self.agent.position.distance_squared_to(target_pos) > utils.PANIC_DISTANCE ** 2:
             return pygame.Vector2(0,0)
         desired_velocity = pygame.Vector2.normalize(self.agent.position - target_pos) * self.agent.max_speed
         return desired_velocity - self.agent.velocity

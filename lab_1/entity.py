@@ -127,7 +127,7 @@ class Zombie:
         self.max_speed = 0.1
         self.state = sb.SteeringBehaviors(self)
         self.wander_target = pygame.Vector2(1, 0)
-        self.smoothing = 0.1
+        self.smoothing = 0.2
 
     
     def draw(self):
