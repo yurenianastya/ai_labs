@@ -4,6 +4,7 @@ import utils
 
 pygame.init()
 pygame.display.set_caption("Zombie attack")
+pygame.display.set_mode((0,0), pygame.FULLSCREEN)
 
 player = entity.Player([utils.SCREEN_WIDTH // 2, utils.SCREEN_HEIGHT // 2])
 
