@@ -17,23 +17,57 @@ class SteeringBehaviors():
     def __init__(self, agent):
         self.agent = agent
 
+    
+    def accumulate_force(self, running_total, force_to_add):
+        magnitude_so_far = running_total.length()
+        magnitude_remaining = utils.MAX_STEERING_FORCE - magnitude_so_far
+
+        if magnitude_remaining <= 0.0:
+            return running_total
+
+        magnitude_to_add = force_to_add.length()
+
+        if magnitude_to_add < magnitude_remaining:
+            running_total += force_to_add
+        else:
+            truncated_force = force_to_add.normalize() * magnitude_remaining
+            running_total += truncated_force
+
+        return running_total
+
 
     def calculate(self, neighbors, player):
         steering_force = pygame.Vector2(0, 0)
         is_close_to_player = self.agent.position.distance_squared_to(player.position) <= utils.PANIC_DISTANCE ** 2
-        steering_force += self.obstacle_avoidance(utils.obstacles) * 0.9
-        steering_force += self.separation(neighbors) * 0.7
 
-        if len(neighbors) > 4:
-            steering_force += self.alignment(neighbors) * 0.5
-            steering_force += self.pursuit(player) * 0.8
-        elif len(neighbors) <= 4:
+        obstacle_avoidance_force = self.obstacle_avoidance(utils.obstacles) * 0.8
+        steering_force = self.accumulate_force(steering_force, obstacle_avoidance_force)
+
+        separation_force = self.separation(neighbors) * 0.7
+        steering_force = self.accumulate_force(steering_force, separation_force)
+
+        if len(neighbors) > 5:
+            self.agent.color = utils.COLOR_RED
+            alignment_force = self.alignment(neighbors) * 0.6
+            steering_force = self.accumulate_force(steering_force, alignment_force)
+            
+            pursuit_force = self.pursuit(player) * 0.5
+            steering_force = self.accumulate_force(steering_force, pursuit_force)
+        else:
+            self.agent.color = utils.COLOR_YELLOW
             if is_close_to_player:
-                steering_force += self.hide(player, utils.obstacles) * 0.5
-                steering_force += self.flee(player.position) * 0.5
+                hide_force = self.hide(player, utils.obstacles) * 0.5
+                steering_force = self.accumulate_force(steering_force, hide_force)
+                
+                flee_force = self.flee(player.position) * 0.6
+                steering_force = self.accumulate_force(steering_force, flee_force)
             else:
-                steering_force += self.wander(3,2,5) * 0.5
-                steering_force += self.cohesion(neighbors) * 0.4
+                self.agent.color = utils.COLOR_BLUE
+                wander_force = self.wander(5, 3, 5) * 0.5
+                steering_force = self.accumulate_force(steering_force, wander_force)
+
+                cohesion_force = self.cohesion(neighbors) * 0.6
+                steering_force = self.accumulate_force(steering_force, cohesion_force)
 
         return utils.truncate(steering_force)
     

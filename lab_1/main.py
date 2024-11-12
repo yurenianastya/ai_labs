@@ -30,6 +30,9 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_q:
+                running = False
 
     utils.SCREEN.fill((0, 0, 0))
 
@@ -39,4 +42,4 @@ while running:
     draw_player(current_time, keys)
 
     pygame.display.flip()
-    utils.CLOCK.tick(60)
+    utils.CLOCK.tick(30)

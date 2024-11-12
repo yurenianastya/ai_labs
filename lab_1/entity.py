@@ -18,7 +18,7 @@ class Player():
         self.velocity = pygame.Vector2(0,0)
         self.heading = pygame.Vector2(1,0)
         self.angle = 0
-        self.speed = 3
+        self.speed = 5
         self.bullets = []
         self.bullet_speed = 10
         self.shoot_delay = 300
@@ -116,7 +116,7 @@ class Zombie:
 
     def __init__(self, position):
         self.position = position
-        self.radius = 7
+        self.radius = 5
         self.velocity = pygame.Vector2(1,0)
         self.heading = pygame.Vector2()
         self.smoothed_heading = pygame.Vector2()
@@ -127,11 +127,12 @@ class Zombie:
         self.max_speed = 0.1
         self.state = sb.SteeringBehaviors(self)
         self.wander_target = pygame.Vector2(1, 0)
-        self.smoothing = 0.2
+        self.neighbors = []
+        self.color = utils.COLOR_GREEN
 
     
     def draw(self):
-        pygame.draw.circle(utils.SCREEN, utils.COLOR_ZOMBIE, self.position, self.radius)
+        pygame.draw.circle(utils.SCREEN, self.color, self.position, self.radius)
 
 
     def perp(vec):
@@ -147,13 +148,13 @@ class Zombie:
     
 
     def tag_neighbors(self, zombies, radius):
-        neighbors = []
+        self.neighbors = []
         for zombie in zombies:
             vector_to = zombie.position - self.position
             tag_range = zombie.radius + radius
             if zombie != self and vector_to.length_squared() < tag_range ** 2:
-                neighbors.append(zombie)
-        return neighbors
+                self.neighbors.append(zombie)
+        return self.neighbors
 
 
     def update(self, time_elapsed, zombies, player):
@@ -162,11 +163,10 @@ class Zombie:
         self.acceleration = steering_force / self.mass
         self.velocity += self.acceleration * time_elapsed
         if self.velocity.length() > self.max_speed:
-            utils.truncate(self.velocity, self.max_speed)
+            self.velocity = utils.truncate(self.velocity, self.max_speed)
         self.position += self.velocity * time_elapsed
         if self.velocity.length_squared() > 0.000001:
-            desired_heading = self.velocity.normalize()
-            self.heading = self.lerp(self.heading, desired_heading, self.smoothing)
+            self.heading = self.velocity.normalize()
             self.side = Zombie.perp(self.heading)
         self.wrap_around(utils.SCREEN_WIDTH, utils.SCREEN_HEIGHT)
 
