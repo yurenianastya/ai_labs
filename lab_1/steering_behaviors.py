@@ -36,11 +36,11 @@ class SteeringBehaviors():
         return running_total
 
 
-    def calculate(self, neighbors, player):
+    def calculate(self, neighbors, obstacles, player):
         steering_force = pygame.Vector2(0, 0)
         is_close_to_player = self.agent.position.distance_squared_to(player.position) <= utils.PANIC_DISTANCE ** 2
 
-        obstacle_avoidance_force = self.obstacle_avoidance(utils.obstacles) * 0.8
+        obstacle_avoidance_force = self.obstacle_avoidance(obstacles) * 0.8
         steering_force = self.accumulate_force(steering_force, obstacle_avoidance_force)
 
         separation_force = self.separation(neighbors) * 0.7
@@ -54,12 +54,9 @@ class SteeringBehaviors():
             pursuit_force = self.pursuit(player) * 0.5
             steering_force = self.accumulate_force(steering_force, pursuit_force)
         else:
-            self.agent.color = utils.COLOR_YELLOW
             if is_close_to_player:
-                hide_force = self.hide(player, utils.obstacles) * 0.5
-                steering_force = self.accumulate_force(steering_force, hide_force)
-                
-                flee_force = self.flee(player.position) * 0.6
+                self.agent.color = utils.COLOR_YELLOW
+                flee_force = self.flee(player.position) * 0.5
                 steering_force = self.accumulate_force(steering_force, flee_force)
             else:
                 self.agent.color = utils.COLOR_BLUE
@@ -150,9 +147,9 @@ class SteeringBehaviors():
         return target_world - self.agent.position
     
 
-    def obstacle_avoidance(self, obstacles):
+
+    def wall_avoidance(self):
         detection_box_length = utils.MIN_DETECTION  + self.agent.velocity.magnitude() / self.agent.max_speed + utils.MAX_DETECTION
-        steering_force = pygame.Vector2(0, 0)
         feelers = [
             self.agent.position + self.agent.heading * detection_box_length,  # Center feeler
             self.agent.position + self.agent.heading.rotate(45) * detection_box_length * 0.5,  # Left feeler
@@ -162,19 +159,18 @@ class SteeringBehaviors():
         for feeler in feelers:
             closest_intersection = None
             closest_dist = float('inf')
+            pass
 
-            for obstacle in obstacles:
-                to_obstacle = obstacle.position - self.agent.position
-                distance = to_obstacle.length()
-                if distance < detection_box_length + obstacle.radius:
-                    projection_length = (feeler - obstacle.position).length()
-                    if projection_length < obstacle.radius:
-                        away_vector = (self.agent.position - obstacle.position).normalize() * (obstacle.radius - projection_length)
-                        if away_vector.length() < closest_dist:
-                            closest_dist = away_vector.length()
-                            closest_intersection = away_vector
-            if closest_intersection:
-               steering_force += closest_intersection
+
+    def obstacle_avoidance(self, obstacles):
+        detection_box_len = utils.MIN_DETECTION + self.agent.velocity.magnitude() / self.agent.max_speed + utils.MAX_DETECTION
+        steering_force = pygame.Vector2(0, 0)
+        
+        tagged_obstacles = self.agent.tag_neighbors(obstacles, detection_box_len)
+
+        for obstacle in tagged_obstacles:
+            to_obstacle = obstacle.position - self.agent.position
+            
         return steering_force
     
 
@@ -217,35 +213,36 @@ class SteeringBehaviors():
 
 
     def separation(self, neighbors):
-        steering_force = pygame.Vector2(0,0)
+        steering_force = pygame.Vector2(0, 0)
         for neighbor in neighbors:
-            if neighbor != self:
-                to_agent = self.agent.position - neighbor.position
-                steering_force += to_agent.normalize() / to_agent.length()
+            to_agent = self.agent.position - neighbor.position
+            distance = to_agent.length()
+            if distance > 0:
+                steering_force += to_agent.normalize() / distance
         return steering_force
     
 
     def alignment(self, neighbors):
-        average_heading = pygame.Vector2(0,0)
+        average_heading = pygame.Vector2(0, 0)
         neighbor_count = 0
         for neighbor in neighbors:
-            if neighbor != self:
-                average_heading += neighbor.heading
-                neighbor_count += 1
+            average_heading += neighbor.heading
+            neighbor_count += 1
         if neighbor_count > 0:
             average_heading /= neighbor_count
-            average_heading -= self.agent.heading
-        return average_heading
+            average_heading = average_heading.normalize()
+            return average_heading - self.agent.heading
+        return pygame.Vector2(0, 0)
     
 
     def cohesion(self, neighbors):
-        center_of_mass, steering_force = pygame.Vector2(0, 0), pygame.Vector2(0, 0)
+        center_of_mass = pygame.Vector2(0, 0)
         neighbor_count = 0
         for neighbor in neighbors:
-            if neighbor != self:
-                center_of_mass += neighbor.position
-                neighbor_count += 1 
+            center_of_mass += neighbor.position
+            neighbor_count += 1
         if neighbor_count > 0:
             center_of_mass /= neighbor_count
             steering_force = self.seek(center_of_mass)
-        return steering_force
+            return steering_force
+        return pygame.Vector2(0, 0)

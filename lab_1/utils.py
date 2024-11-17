@@ -1,5 +1,5 @@
 import pygame
-# Constants
+# Colors
 COLOR_RED = (255,0,0)
 COLOR_BLUE = (0,0,255)
 COLOR_GREEN = (0,255,0)
@@ -8,16 +8,20 @@ COLOR_OBSTACLES = (71, 105, 91)
 COLOR_BULLET = (255, 255, 255)  
 COLOR_PLAYER =  (0, 0, 255)
 COLOR_GUN = (255, 0, 0)
+# screen
 SCREEN_WIDTH = 1600
 SCREEN_HEIGHT = 900
 SCREEN = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 CLOCK = pygame.time.Clock()
 
+# steering behavior
+ZOMBIE_RADIUS = 8
 MIN_DETECTION = 10
 MAX_DETECTION = 30
 MAX_STEERING_FORCE = 2
 NEIGHBOR_RADIUS = 70
 PANIC_DISTANCE = 250
+
 
 OBSTACLES_POS = [
     [pygame.math.Vector2(120, 500), 100],
@@ -30,7 +34,7 @@ OBSTACLES_POS = [
 
 
 ZOMBIES_POS = [
-    pygame.math.Vector2(520,440),
+    # pygame.math.Vector2(520,440),
     pygame.math.Vector2(700,320),
     pygame.math.Vector2(200,400),
     pygame.math.Vector2(100,450),
@@ -61,17 +65,15 @@ def truncate(vec, max_len=MAX_STEERING_FORCE):
     return vec
 
 
-class Obstacle():
+def lerp(start, end, alpha):
+    return start + (end - start) * alpha
 
-    # position (x,y) and radius
-    def __init__(self, position, radius):
-        self.position = position
-        self.radius = radius
+def perp(vec):
+    return pygame.Vector2(-vec.y, vec.x)
 
-    
-    def draw(self):
-        pygame.draw.circle(SCREEN, COLOR_OBSTACLES,
-                            (int(self.position[0]), int(self.position[1])), self.radius)
-    
-
-obstacles = [ Obstacle(pos, rad) for pos, rad in OBSTACLES_POS ]
+def world_to_local(self, point):
+    heading = self.heading
+    side = perp(heading)
+    trans_matrix = pygame.math.Matrix3x2(heading.x, side.x, 0, heading.y, side.y, 0)
+    local_point = trans_matrix.transform_point(point - self.position)
+    return local_point
