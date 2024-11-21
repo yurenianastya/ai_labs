@@ -164,9 +164,12 @@ class Zombie:
         self.radius = utils.ZOMBIE_RADIUS
         self.velocity = pygame.Vector2(1, 0)
         self.heading = self.velocity.normalize()
-        self.max_speed = 0.1
+        self.side = Zombie.perp(self.heading)
+        self.max_speed = 0.05
         self.mass = 1.0
         self.state = sb.SteeringBehaviors(self)
+        self.wander_target = pygame.Vector2(0,0)
+        self.max_turn_rate = 0.1
 
 
     def _wrap_around(self, max_x, max_y):
@@ -176,18 +179,16 @@ class Zombie:
 
     def tag_neighbors(self, objects, radius):
         tagged_neighbors = []
-        radius_squared = radius ** 2
         for obj in objects:
-            if id(obj) == id(self):
-                continue
-            distance_squared = self.position.distance_squared_to(obj.position)
-            if distance_squared < radius_squared:
+            to = obj.position - self.position
+            total_radius = radius + obj.radius
+            if obj != self and to.length_squared() < total_radius*total_radius:
                 tagged_neighbors.append(obj)
         return tagged_neighbors
 
 
-    def update(self, time_elapsed, obstacles, player):
-        steering_force = self.state.calculate(obstacles, player)
+    def update(self, time_elapsed, obstacles, player, zombies):
+        steering_force = self.state.calculate(obstacles, player, zombies)
         self.velocity += (steering_force / self.mass) * time_elapsed
         self.velocity = utils.truncate(self.velocity, self.max_speed)
         self.position += self.velocity * time_elapsed
@@ -196,6 +197,10 @@ class Zombie:
 
     def draw(self):
         pygame.draw.circle(utils.SCREEN, self.color, self.position, self.radius)
+
+    
+    def perp(vec):
+        return pygame.Vector2(-vec.y, vec.x)
 
 class Obstacle():
 

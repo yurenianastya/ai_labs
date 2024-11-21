@@ -37,10 +37,10 @@ def update_game_logic(current_time, zombies):
     keys = pygame.key.get_pressed()
     player.update(current_time, zombies, keys)
     for zombie in zombies:
-        zombie.update(60, obstacles, player)
-    if player.check_collision_with_zombies(zombies):
-        display_message("You are dead!")
-        return False
+        zombie.update(60, obstacles, player, zombies)
+    #if player.check_collision_with_zombies(zombies):
+        #display_message("You are dead!")
+        #return False
     if not zombies:
         display_message("All the zombies are killed!")
         return False

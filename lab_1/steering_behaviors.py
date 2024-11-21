@@ -17,39 +17,24 @@ class SteeringBehaviors():
     def __init__(self, agent):
         self.agent = agent
 
-    
-    def accumulate_force(self, running_total, force_to_add):
-        magnitude_so_far = running_total.length()
-        magnitude_remaining = utils.MAX_STEERING_FORCE - magnitude_so_far
 
-        if magnitude_remaining <= 0.0:
-            return running_total
-
-        magnitude_to_add = force_to_add.length()
-
-        if magnitude_to_add < magnitude_remaining:
-            running_total += force_to_add
-        else:
-            truncated_force = force_to_add.normalize() * magnitude_remaining
-            running_total += truncated_force
-
-        return running_total
-
-
-    def calculate(self, obstacles, player):
+    def calculate(self, obstacles, player, zombies):
         steering_force = pygame.Vector2(0, 0)
-        is_close_to_player = self.agent.position.distance_to(player.position) <= utils.PANIC_DISTANCE
-        if is_close_to_player:
-            steering_force = self.hide(player, obstacles).normalize() * self.agent.max_speed
-        # TODO combine other behaviors
-        # avoid_force = self.obstacle_avoidance(obstacles).normalize() * self.agent.max_speed
 
-        # combined_force = (
-        #     flee_force * 0.5 +
-        #     avoid_force * 1.0
-        # )
+        prior_obstacle_avoidance = 0.9
+        prior_separation = 0.4
+        prior_wander = 0.4
+        prior_alignment = 0.4
+        prior_cohesion = 0.5
+
+        steering_force = self.obstacle_avoidance(obstacles) * prior_obstacle_avoidance
+        if not SteeringBehaviors.is_zero(steering_force):
+            return utils.truncate(steering_force, self.agent.max_speed)
         
-        steering_force = pygame.Vector2.lerp(self.agent.velocity, steering_force, 0.1)
+        steering_force = self.separation(zombies) * prior_separation
+        if not SteeringBehaviors.is_zero(steering_force):
+            return utils.truncate(steering_force, self.agent.max_speed)
+        
         return utils.truncate(steering_force, self.agent.max_speed)
 
 
@@ -122,29 +107,50 @@ class SteeringBehaviors():
         return target_world - self.agent.position
     
 
-
-    def wall_avoidance(self):
-        detection_box_length = utils.MIN_DETECTION  + self.agent.velocity.magnitude() / self.agent.max_speed + utils.MAX_DETECTION
-        feelers = [
-            self.agent.position + self.agent.heading * detection_box_length,  # Center feeler
-            self.agent.position + self.agent.heading.rotate(45) * detection_box_length * 0.5,  # Left feeler
-            self.agent.position + self.agent.heading.rotate(-45) * detection_box_length * 0.5  # Right feeler
-        ]
-
-        for feeler in feelers:
-            closest_intersection = None
-            closest_dist = float('inf')
-            pass
-
-
     def obstacle_avoidance(self, obstacles):
-        detection_box_len = utils.MIN_DETECTION + (
+        detection_box_len = utils.DETECTION['MIN'] + (
             self.agent.velocity.magnitude() / self.agent.max_speed
-        ) * (utils.MAX_DETECTION - utils.MIN_DETECTION)
-        steering_force = pygame.Vector2(0,0)
-        tagged_obstacles = self.agent.tag_neighbors(obstacles, detection_box_len)
-    
+        ) * (utils.DETECTION['MAX'] - utils.DETECTION['MIN'])
 
+        tagged_obstacles = self.agent.tag_neighbors(obstacles, detection_box_len)
+        closest_intersect_obstacle = None
+        dist_closest_ip = math.inf
+        local_pos_of_closest = pygame.Vector2(0,0)
+
+        for obstacle in tagged_obstacles:
+            local_pos = SteeringBehaviors.point_to_local_space(
+                obstacle.position,
+                self.agent.heading,
+                self.agent.side,
+                self.agent.position,
+            )
+            if local_pos.x > 0:
+                expanded_radius = obstacle.radius + self.agent.radius
+                if math.fabs(local_pos.y) < expanded_radius:
+                    c_x = local_pos.x
+                    c_y = local_pos.y
+                    sqrt_part = math.sqrt(expanded_radius ** 2 - c_y ** 2)
+                    ip = c_x - sqrt_part
+                    if ip <= 0.0:
+                        ip = c_x + sqrt_part
+                    if ip < dist_closest_ip:
+                        dist_closest_ip = ip
+                        closest_intersect_obstacle = obstacle
+                        local_pos_of_closest = local_pos
+
+        avoidance_force = pygame.Vector2(0,0)
+        if closest_intersect_obstacle:
+            multiplier = 1.0 + (detection_box_len - local_pos_of_closest.x) / detection_box_len
+            avoidance_force.y = (closest_intersect_obstacle.radius - local_pos_of_closest.y) * multiplier
+            braking_weight = 0.4
+            avoidance_force.x = (closest_intersect_obstacle.radius - local_pos_of_closest.x) * braking_weight
+        return SteeringBehaviors.vector_to_world_space(
+            avoidance_force,
+            self.agent.heading,
+            self.agent.side,
+        )
+
+    
     def interpose(self, agent_a, agent_b):
         mid_point = (agent_a.position + agent_b.position) / 2.0
         time_to_mid_point = pygame.Vector2.distance_to(self.agent.position, mid_point) / self.agent.max_speed
@@ -176,16 +182,17 @@ class SteeringBehaviors():
     
 
     def offset_pursuit(self, leader_agent, offset):
-        world_offset_pos = utils.point_to_world_space(
+        world_offset_pos = SteeringBehaviors.point_to_world_space(
             offset,leader_agent.position, leader_agent.heading, leader_agent.side)
         to_offset = world_offset_pos - self.agent.position
         look_ahead_time = to_offset.length() / ( self.agent.max_speed + leader_agent.velocity.length() )
         return self.arrive(world_offset_pos + leader_agent.velocity.length() * look_ahead_time, Deceleration.FAST.value)
 
 
-    def separation(self, neighbors):
+    def separation(self, zombies):
         steering_force = pygame.Vector2(0, 0)
-        for neighbor in neighbors:
+        zombie_neighbors = self.agent.tag_neighbors(zombies, utils.NEIGHBOR_RADIUS)
+        for neighbor in zombie_neighbors:
             to_agent = self.agent.position - neighbor.position
             distance = to_agent.length()
             if distance > 0:
@@ -203,8 +210,50 @@ class SteeringBehaviors():
     def cohesion(self, neighbors):
         if not neighbors:
             return pygame.Vector2(0, 0)
-
-
-
         center_of_mass = sum(neighbor.position for neighbor in neighbors) / len(neighbors)
         return (center_of_mass - self.agent.position).normalize()
+    
+       
+    def point_to_world_space(point, agent_position, heading, side):
+        world_x = point.x * heading.x + point.y * side.x
+        world_y = point.x * heading.y + point.y * side.y
+        rotated_point = pygame.Vector2(world_x, world_y)
+        world_point = rotated_point + agent_position
+        return world_point
+    
+
+    def point_to_local_space(point, heading, side, agent_position):
+        translated_point = point - agent_position
+        local_x = translated_point.dot(heading)
+        local_y = translated_point.dot(side)
+        return pygame.Vector2(local_x, local_y)
+    
+
+    def world_to_local_space(agent, world_position):
+        heading = agent.velocity.normalize()
+        side = pygame.Vector2(-heading.y, heading.x)
+        local_x = heading.dot(world_position - agent.position)
+        local_y = side.dot(world_position - agent.position)
+        return pygame.Vector2(local_x, local_y)
+    
+
+    def local_to_world_space(agent, local_vector):
+        heading = agent.velocity.normalize()
+        side = pygame.Vector2(-heading.y, heading.x)
+        world_x = heading.x * local_vector.x + side.x * local_vector.y
+        world_y = heading.y * local_vector.x + side.y * local_vector.y
+        return pygame.Vector2(world_x, world_y)
+    
+
+    def vector_to_world_space(vec, agent_heading, agent_side):
+        transform_matrix = [
+            [agent_heading.x, agent_side.x],
+            [agent_heading.y, agent_side.y]
+        ]
+        world_x = vec.x * transform_matrix[0][0] + vec.y * transform_matrix[0][1]
+        world_y = vec.x * transform_matrix[1][0] + vec.y * transform_matrix[1][1]
+        return pygame.Vector2(world_x, world_y)
+    
+
+    def is_zero(vec):
+        return math.isclose(vec.magnitude(), 0)
