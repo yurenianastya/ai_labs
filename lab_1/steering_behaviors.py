@@ -18,24 +18,63 @@ class SteeringBehaviors():
         self.agent = agent
 
 
+    def accumulate_force(running_total, force_to_add):
+        magnitude_so_far = running_total.length()
+        magnitude_remaining = utils.MAX_STEERING_FORCE - magnitude_so_far
+        if magnitude_remaining <= 0.0: return False
+        magnitude_to_add = force_to_add.length()
+        if magnitude_to_add < magnitude_remaining:
+            running_total += force_to_add
+        else:
+            running_total += force_to_add.normalize() * magnitude_remaining
+        return True
+
+
     def calculate(self, obstacles, player, zombies):
         steering_force = pygame.Vector2(0, 0)
 
-        prior_obstacle_avoidance = 0.9
-        prior_separation = 0.4
-        prior_wander = 0.4
-        prior_alignment = 0.4
-        prior_cohesion = 0.5
+        w_avoidance = 0.95
+        w_separation = 0.7
+        w_cohesion = 0.2
+        w_alignment = 0.35
+        w_wander = 0.4
+        w_hide = 0.4
+        w_flee = 0.5
+        w_pursuit = 0.4
 
-        steering_force = self.obstacle_avoidance(obstacles) * prior_obstacle_avoidance
-        if not SteeringBehaviors.is_zero(steering_force):
-            return utils.truncate(steering_force, self.agent.max_speed)
+        # state depends on how many friends and how close?
+        zombie_neighbors = self.agent.tag_neighbors(zombies, utils.NEIGHBOR_RADIUS)
+        is_close_to_target = self.agent.position.distance_squared_to(player.position) <= utils.PANIC_DISTANCE ** 2
+
+        # general force for all states
+        avoidance_force = self.obstacle_avoidance(obstacles) * w_avoidance
+        if not SteeringBehaviors.accumulate_force(steering_force, avoidance_force): return steering_force
+        separation_force = self.separation(zombie_neighbors) * w_separation
+        if not SteeringBehaviors.accumulate_force(steering_force, separation_force): return steering_force
+
+        # state - hide if danger amd small group
+        if is_close_to_target and len(zombie_neighbors) < 5:
+            self.agent.color = utils.COLORS['YELLOW']
+            flee_force = self.flee(player.position) * w_flee
+            if not SteeringBehaviors.accumulate_force(steering_force, flee_force): return steering_force
+            # hide_force = self.hide(player, obstacles) * w_hide
+            # if not SteeringBehaviors.accumulate_force(steering_force, hide_force): return steering_force
         
-        steering_force = self.separation(zombies) * prior_separation
-        if not SteeringBehaviors.is_zero(steering_force):
-            return utils.truncate(steering_force, self.agent.max_speed)
-        
-        return utils.truncate(steering_force, self.agent.max_speed)
+        # state - wander to find others if no danger
+        if not is_close_to_target and len(zombie_neighbors) < 5:
+            self.agent.color = utils.COLORS['BLUE']
+            cohesion_force = self.cohesion(zombie_neighbors) * w_cohesion
+            if not SteeringBehaviors.accumulate_force(steering_force, cohesion_force): return steering_force
+            wander_force = self.wander(5, 2, 7) * w_wander
+            if not SteeringBehaviors.accumulate_force(steering_force, wander_force): return steering_force
+        # state - if big group then pursuit
+        if len(zombie_neighbors) > 5:
+            self.agent.color = utils.COLORS['RED']
+            alignment_force = self.alignment(zombie_neighbors) * w_alignment
+            if not SteeringBehaviors.accumulate_force(steering_force, alignment_force): return steering_force
+            pursuit_force = self.pursuit(player) * w_pursuit
+            if not SteeringBehaviors.accumulate_force(steering_force, pursuit_force): return steering_force
+        return steering_force
 
 
     def seek(self, target_pos):
@@ -108,10 +147,9 @@ class SteeringBehaviors():
     
 
     def obstacle_avoidance(self, obstacles):
-        detection_box_len = utils.DETECTION['MIN'] + (
+        detection_box_len = utils.MIN_DETECTION_LEN + (
             self.agent.velocity.magnitude() / self.agent.max_speed
-        ) * (utils.DETECTION['MAX'] - utils.DETECTION['MIN'])
-
+        ) * utils.MIN_DETECTION_LEN
         tagged_obstacles = self.agent.tag_neighbors(obstacles, detection_box_len)
         closest_intersect_obstacle = None
         dist_closest_ip = math.inf
@@ -129,9 +167,9 @@ class SteeringBehaviors():
                 if math.fabs(local_pos.y) < expanded_radius:
                     c_x = local_pos.x
                     c_y = local_pos.y
-                    sqrt_part = math.sqrt(expanded_radius ** 2 - c_y ** 2)
+                    sqrt_part = math.sqrt(max(0, expanded_radius**2 - c_y**2))
                     ip = c_x - sqrt_part
-                    if ip <= 0.0:
+                    if ip <= 0:
                         ip = c_x + sqrt_part
                     if ip < dist_closest_ip:
                         dist_closest_ip = ip
@@ -149,6 +187,20 @@ class SteeringBehaviors():
             self.agent.heading,
             self.agent.side,
         )
+
+
+    def create_feelers(self):
+        # point in front
+        self.agent.feelers[0] = self.agent.position + utils.WALL_DETECTION_LEN * self.agent.heading
+        # to left
+        temp = self.agent.heading
+        temp.rotate(math.pi / 2 * 3.5)
+        self.agent.feelers[1] = self.agent.position + utils.WALL_DETECTION_LEN / 2.0 * temp
+        # to right
+        temp = self.agent.heading
+        temp.rotate(math.pi / 2 * 0.5)
+        self.agent.feelers[2] = self.agent.position + utils.WALL_DETECTION_LEN / 2.0 * temp
+        
 
     
     def interpose(self, agent_a, agent_b):
@@ -189,9 +241,8 @@ class SteeringBehaviors():
         return self.arrive(world_offset_pos + leader_agent.velocity.length() * look_ahead_time, Deceleration.FAST.value)
 
 
-    def separation(self, zombies):
+    def separation(self, zombie_neighbors):
         steering_force = pygame.Vector2(0, 0)
-        zombie_neighbors = self.agent.tag_neighbors(zombies, utils.NEIGHBOR_RADIUS)
         for neighbor in zombie_neighbors:
             to_agent = self.agent.position - neighbor.position
             distance = to_agent.length()
@@ -203,14 +254,14 @@ class SteeringBehaviors():
     def alignment(self, neighbors):
         if not neighbors:
             return pygame.Vector2(0, 0)
-        avg_velocity = sum(neighbor.velocity for neighbor in neighbors) / len(neighbors)
+        avg_velocity = sum((neighbor.velocity for neighbor in neighbors), pygame.Vector2(0,0)) / len(neighbors)
         return (avg_velocity - self.agent.velocity).normalize()
     
 
     def cohesion(self, neighbors):
         if not neighbors:
             return pygame.Vector2(0, 0)
-        center_of_mass = sum(neighbor.position for neighbor in neighbors) / len(neighbors)
+        center_of_mass = sum((neighbor.velocity for neighbor in neighbors), pygame.Vector2(0,0)) / len(neighbors)
         return (center_of_mass - self.agent.position).normalize()
     
        

@@ -21,24 +21,19 @@ CLOCK = pygame.time.Clock()
 
 # Steering behavior constants
 ZOMBIE_RADIUS = 6
-DETECTION = {
-    "MIN": 5,
-    "MAX": 50,
-}
-MAX_STEERING_FORCE = 2.0
-NEIGHBOR_RADIUS = 100
-PANIC_DISTANCE = 250
-
+MIN_DETECTION_LEN = 10
+MAX_STEERING_FORCE = 1.5
+NEIGHBOR_RADIUS = 110
+PANIC_DISTANCE = 350
 # Positions
 OBSTACLES = [
-    {"position": pygame.math.Vector2(120, 500), "radius": 60},
-    {"position": pygame.math.Vector2(600, 100), "radius": 70},
-    {"position": pygame.math.Vector2(1300, 200), "radius": 94},
-    {"position": pygame.math.Vector2(900, 300), "radius": 70},
-    {"position": pygame.math.Vector2(450, 300), "radius": 80},
-    {"position": pygame.math.Vector2(450, 600), "radius": 80},
-    {"position": pygame.math.Vector2(1000, 700), "radius": 80},
-    {"position": pygame.math.Vector2(100, 100), "radius": 70},
+    {"position": pygame.math.Vector2(200, 300), "radius": 60},
+    {"position": pygame.math.Vector2(400, 250), "radius": 70},
+    {"position": pygame.math.Vector2(600, 500), "radius": 94},
+    {"position": pygame.math.Vector2(800, 200), "radius": 70},
+    {"position": pygame.math.Vector2(1000, 600), "radius": 80},
+    {"position": pygame.math.Vector2(1100, 200), "radius": 80},
+    {"position": pygame.math.Vector2(1300, 300), "radius": 80},
 ]
 
 ZOMBIES = [
@@ -52,17 +47,17 @@ ZOMBIES = [
     pygame.math.Vector2(40, 320),
     pygame.math.Vector2(10, 10),
     pygame.math.Vector2(50, 900),
-    # pygame.math.Vector2(60, 40),
-    # pygame.math.Vector2(20, 40),
-    # pygame.math.Vector2(40, 40),
-    # pygame.math.Vector2(700, 40),
-    # pygame.math.Vector2(500, 600),
-    # pygame.math.Vector2(70, 340),
-    # pygame.math.Vector2(0, 30),
-    # pygame.math.Vector2(40, 405),
-    # pygame.math.Vector2(160, 40),
-    # pygame.math.Vector2(120, 40),
-    # pygame.math.Vector2(140, 40),
+    pygame.math.Vector2(60, 40),
+    pygame.math.Vector2(20, 40),
+    pygame.math.Vector2(40, 40),
+    pygame.math.Vector2(700, 40),
+    pygame.math.Vector2(500, 600),
+    pygame.math.Vector2(70, 340),
+    pygame.math.Vector2(0, 30),
+    pygame.math.Vector2(40, 405),
+    pygame.math.Vector2(160, 40),
+    pygame.math.Vector2(120, 40),
+    pygame.math.Vector2(140, 40),
 ]
 
 # Utility functions
