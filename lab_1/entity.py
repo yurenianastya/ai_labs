@@ -162,10 +162,10 @@ class Zombie:
         self.color = utils.COLORS['ZOMBIE']
         self.position = pygame.Vector2(position)
         self.radius = utils.ZOMBIE_RADIUS
-        self.velocity = pygame.Vector2(0.01, 0.01)
-        self.heading = self.velocity.normalize()
+        self.velocity = pygame.Vector2(1,0)
+        self.heading = pygame.Vector2(1,0)
         self.side = Zombie.perp(self.heading)
-        self.max_speed = 0.1
+        self.max_speed = 0.05
         self.mass = 1.0
         self.state = sb.SteeringBehaviors(self)
         self.wander_target = pygame.Vector2(0,0)
@@ -191,6 +191,7 @@ class Zombie:
         steering_force = self.state.calculate(obstacles, player, zombies)
         self.velocity += (steering_force / self.mass) * time_elapsed
         self.velocity = utils.truncate(self.velocity, self.max_speed)
+        self.heading = self.velocity.normalize()
         self.position += self.velocity * time_elapsed
         self._wrap_around(utils.SCREEN_WIDTH, utils.SCREEN_HEIGHT)
         

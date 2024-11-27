@@ -8,7 +8,7 @@ pygame.display.set_mode((utils.SCREEN_WIDTH, utils.SCREEN_HEIGHT))
 font = pygame.font.SysFont("Arial", 36)
 
 obstacles = [entity.Obstacle(data["position"], data["radius"]) for data in utils.OBSTACLES]
-player = entity.Player([utils.SCREEN_WIDTH // 2, utils.SCREEN_HEIGHT // 2], obstacles)
+player = entity.Player([30, 30], obstacles)
 zombies = [ entity.Zombie(pos) for pos in utils.ZOMBIES ]
 
 
