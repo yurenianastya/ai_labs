@@ -22,10 +22,10 @@ CLOCK = pygame.time.Clock()
 # Steering behavior constants
 ZOMBIE_RADIUS = 6
 MIN_DETECTION_LEN = 20
-MAX_STEERING_FORCE = 2.0
-NEIGHBOR_RADIUS = 70
-PANIC_DISTANCE = 150
-RELATIVE_SAFE_DISTANCE = 300
+MAX_STEERING_FORCE = 5.0
+NEIGHBOR_RADIUS = 60
+PANIC_DISTANCE = 250
+RELATIVE_SAFE_DISTANCE = 450
 # Positions
 OBSTACLES = [
     {"position": pygame.math.Vector2(200, 300), "radius": 50},
@@ -38,20 +38,26 @@ OBSTACLES = [
 ]
 
 ZOMBIES = [
-    pygame.math.Vector2(570, 440),
-    pygame.math.Vector2(700, 320),
-    pygame.math.Vector2(200, 400),
-    pygame.math.Vector2(100, 450),
-    pygame.math.Vector2(500, 800),
-    pygame.math.Vector2(700, 450),
-    pygame.math.Vector2(10, 720),
-    pygame.math.Vector2(700, 500),
-    pygame.math.Vector2(200, 500),
-    pygame.math.Vector2(100, 600),
-    pygame.math.Vector2(500, 600),
-    pygame.math.Vector2(700, 700),
-    pygame.math.Vector2(10, 800),
-    
+    pygame.math.Vector2(700, 100),
+    pygame.math.Vector2(800, 250),
+    pygame.math.Vector2(900, 300),
+    pygame.math.Vector2(1000, 450),
+    pygame.math.Vector2(1100, 500),
+    pygame.math.Vector2(1200, 650),
+    pygame.math.Vector2(1300, 100),
+    pygame.math.Vector2(1400, 250),
+    pygame.math.Vector2(700, 300),
+    pygame.math.Vector2(800, 450),
+    pygame.math.Vector2(900, 500),
+    pygame.math.Vector2(1000, 650),
+    pygame.math.Vector2(1100, 700),
+    pygame.math.Vector2(1200, 150),
+    pygame.math.Vector2(1000, 200),
+    pygame.math.Vector2(1100, 350),
+    pygame.math.Vector2(1200, 400),
+    pygame.math.Vector2(1300, 550),
+    pygame.math.Vector2(1400, 650),
+    pygame.math.Vector2(1500, 700),
 ]
 
 # Utility functions

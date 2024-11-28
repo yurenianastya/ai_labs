@@ -34,27 +34,26 @@ class SteeringBehaviors():
 
     def calculate(self, obstacles, player, zombies):
 
-        if self.state != 'PANIC':
+        if self.state not in ['PANIC', 'GROUPED']:
             self.steering_force = pygame.Vector2(0, 0)
 
         w_avoidance = 0.9
-        w_separation = 0.6
+        w_separation = 0.5
         w_cohesion = 0.5
-        w_alignment = 0.5
-        w_wander = 0.4
-        w_flee = 0.8
-        w_pursuit = 0.8
+        w_wander = 0.3
+        w_flee = 0.7
+        w_seek = 1.0
 
         # state depends on how many friends and how close?
         zombie_neighbors = self.agent.tag_neighbors(zombies, utils.NEIGHBOR_RADIUS)
         in_panic_zone = self.agent.position.distance_squared_to(player.position) <= utils.PANIC_DISTANCE ** 2
         in_rel_safe_zone = self.agent.position.distance_squared_to(player.position) <= utils.RELATIVE_SAFE_DISTANCE ** 2
 
-        if len(zombie_neighbors) > 3:
+        if len(zombie_neighbors) > 2:
             self.state = 'GROUPED'
         else:
             if in_panic_zone: self.state = 'PANIC'
-            if not in_rel_safe_zone: self.state = 'WANDER'
+            else: self.state = 'WANDER'
 
         # general force for all states
         avoidance_force = self.obstacle_avoidance(obstacles) * w_avoidance
@@ -63,7 +62,6 @@ class SteeringBehaviors():
         if not SteeringBehaviors.accumulate_force(self.steering_force, separation_force): return self.steering_force
 
         if self.state == 'PANIC':
-            self.agent.color = utils.COLORS['YELLOW']
             flee_force = self.flee(player.position) * w_flee
             if not SteeringBehaviors.accumulate_force(self.steering_force, flee_force): return self.steering_force
 
@@ -71,19 +69,20 @@ class SteeringBehaviors():
             flee_force = self.flee(player.position) * w_flee
             if not SteeringBehaviors.accumulate_force(self.steering_force, flee_force): return self.steering_force
 
-        if self.state == 'WANDER':
-            self.agent.color = utils.COLORS['BLUE']
-            cohesion_force = self.cohesion(zombie_neighbors) * w_cohesion
-            if not SteeringBehaviors.accumulate_force(self.steering_force, cohesion_force): return self.steering_force
-            wander_force = self.wander(30,15,10) * w_wander
-            if not SteeringBehaviors.accumulate_force(self.steering_force, wander_force): return self.steering_force
-
         if self.state == 'GROUPED':
-            self.agent.color = utils.COLORS['RED']
-            pursuit_force = self.pursuit(player) * w_pursuit
-            if not SteeringBehaviors.accumulate_force(self.steering_force, pursuit_force): return self.steering_force
-            alignment_force = self.alignment(zombie_neighbors) * w_alignment
-            if not SteeringBehaviors.accumulate_force(self.steering_force, alignment_force): return self.steering_force
+            cohesion_force = self.cohesion(zombie_neighbors) * w_cohesion
+            seek_force = self.seek(player.position) * w_seek
+            combined_force = cohesion_force.lerp(seek_force, 0.5)
+            if not SteeringBehaviors.accumulate_force(self.steering_force, seek_force): return self.steering_force
+
+        if self.state == 'WANDER':
+            if zombie_neighbors:
+                w_wander = 0.1
+                w_cohesion += 0.1
+            flocking_force = self.cohesion(zombie_neighbors) * w_cohesion
+            wander_force = self.wander(15,10,7) * w_wander
+            combined_force = wander_force.lerp(flocking_force, 0.5) 
+            if not SteeringBehaviors.accumulate_force(self.steering_force, combined_force): return self.steering_force
 
         return self.steering_force
 

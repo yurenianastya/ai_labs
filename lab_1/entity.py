@@ -18,7 +18,7 @@ class Player():
         self.velocity = pygame.Vector2(0,0)
         self.heading = pygame.Vector2(1,0)
         self.angle = 0
-        self.speed = 5
+        self.speed = 3
         self.bullets = []
         self.bullet_speed = 10
         self.shoot_delay = 300
@@ -168,7 +168,7 @@ class Zombie:
         self.max_speed = 0.05
         self.mass = 1.0
         self.state = sb.SteeringBehaviors(self)
-        self.wander_target = pygame.Vector2(0,0)
+        self.wander_target = pygame.Vector2(1,0)
         self.max_turn_rate = 0.1
 
 
