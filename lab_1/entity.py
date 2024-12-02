@@ -18,7 +18,7 @@ class Player():
         self.velocity = pygame.Vector2(0,0)
         self.heading = pygame.Vector2(1,0)
         self.angle = 0
-        self.speed = 3
+        self.speed = 4
         self.bullets = []
         self.bullet_speed = 10
         self.shoot_delay = 300
@@ -165,11 +165,12 @@ class Zombie:
         self.velocity = pygame.Vector2(1,0)
         self.heading = pygame.Vector2(1,0)
         self.side = Zombie.perp(self.heading)
-        self.max_speed = 0.05
+        self.max_speed = 0.08
         self.mass = 1.0
         self.state = sb.SteeringBehaviors(self)
         self.wander_target = pygame.Vector2(1,0)
         self.max_turn_rate = 0.1
+        self.force_smoother = sb.ExponentialSmoother(alpha=0.2)
 
 
     def _wrap_around(self, max_x, max_y):
