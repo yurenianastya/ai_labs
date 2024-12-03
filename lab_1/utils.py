@@ -1,5 +1,5 @@
 import pygame
-
+import math
 # Constants
 # Colors
 COLORS = {
@@ -10,7 +10,6 @@ COLORS = {
     "OBSTACLES": (71, 105, 91),
     "BULLET": (255, 255, 255),
     "PLAYER": (0, 0, 255),
-    "GUN": (255, 0, 0),
 }
 
 # Screen settings
@@ -22,9 +21,9 @@ CLOCK = pygame.time.Clock()
 # Steering behavior constants
 ZOMBIE_RADIUS = 6
 MIN_DETECTION_LEN = 20
-MAX_STEERING_FORCE = 15.0
+MAX_STEERING_FORCE = 25.0
 NEIGHBOR_RADIUS = 60
-PANIC_DISTANCE = 250
+PANIC_DISTANCE = 300
 RELATIVE_SAFE_DISTANCE = 450
 # Positions
 OBSTACLES = [
@@ -65,3 +64,27 @@ def truncate(vec, max_len=MAX_STEERING_FORCE):
     if vec.length() > max_len:
         vec.scale_to_length(max_len)
     return vec
+
+
+def ray_circle_intersection(ray_start, ray_direction, circle_center, radius):
+     # Vector from ray start to circle center
+    to_circle = circle_center - ray_start
+    dot_product = to_circle.dot(ray_direction)
+    closest_point = ray_start + ray_direction * dot_product
+
+    # Distance from closest point on the ray to the circle center
+    distance_to_circle = (closest_point - circle_center).length()
+
+    if distance_to_circle > radius:
+        return None  # No intersection
+
+    # Calculate intersection distance along the ray
+    offset = math.sqrt(radius**2 - distance_to_circle**2)
+    t1 = dot_product - offset
+    t2 = dot_product + offset
+    if t1 > 0:
+        return ray_start + ray_direction * t1
+    elif t2 > 0:
+        return ray_start + ray_direction * t2
+
+    return None

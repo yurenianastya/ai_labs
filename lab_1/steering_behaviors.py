@@ -46,10 +46,9 @@ class SteeringBehaviors():
         if self.state is not ['GROUPED', 'PANIC']:
             self.steering_force = pygame.Vector2(0, 0)
 
-        w_avoidance = 1.0
-        w_separation = 0.6
+        w_avoidance = 2.0
+        w_separation = 0.4
         w_cohesion = 0.2
-        w_alignment = 0.4
         w_wander = 0.2
         w_flee = 0.9
         w_seek = 0.9
@@ -73,23 +72,22 @@ class SteeringBehaviors():
         SteeringBehaviors.accumulate_force(self.steering_force, separation_force)
 
         if self.state == 'PANIC':
-            flee_force = self.flee(player.position) * w_flee
+            flee_force = self.hide(player, obstacles) * w_flee
             SteeringBehaviors.accumulate_force(self.steering_force, flee_force)
 
         if in_rel_safe_zone and self.state == 'PANIC':
-            flee_force = self.flee(player.position) * w_flee
+            flee_force = self.hide(player, obstacles) * w_flee
             SteeringBehaviors.accumulate_force(self.steering_force, flee_force)
 
         if self.state == 'GROUPED':
             cohesion_force = self.cohesion(zombie_neighbors) * w_cohesion
             seek_force = self.seek(player.position) * w_seek
-            alignment_force = self.alignment(zombie_neighbors) * w_alignment
             
-            SteeringBehaviors.accumulate_force(self.steering_force, seek_force+alignment_force)
+            SteeringBehaviors.accumulate_force(self.steering_force, seek_force)
             SteeringBehaviors.accumulate_force(self.steering_force, cohesion_force)
 
         if self.state == 'WANDER':
-            flocking_force = self.cohesion(zombie_neighbors) * (w_cohesion + 0.1)
+            flocking_force = self.cohesion(zombie_neighbors) * (w_cohesion + 0.2)
             wander_force = self.wander(15, 10, 7) * (w_wander if not zombie_neighbors else 0.1)
             combined_force = wander_force.lerp(flocking_force, 0.5) 
             SteeringBehaviors.accumulate_force(self.steering_force, combined_force)
@@ -316,6 +314,20 @@ class SteeringBehaviors():
         world_y = vec.x * transform_matrix[1][0] + vec.y * transform_matrix[1][1]
         return pygame.Vector2(world_x, world_y)
     
+
+    def enforce_non_penetration_constraint(entity, entities):
+        for other_entity in entities:
+            if other_entity == entity:
+                continue
+            to_entity = entity.position - other_entity.position
+            distance = to_entity.length()
+            overlap_amount = (entity.radius + other_entity.radius) - distance
+
+            if overlap_amount > 0:
+                correction_vector = to_entity.normalize() * (overlap_amount / 2)
+                entity.position += correction_vector 
+                other_entity.position -= correction_vector
+
 
     def is_zero(vec):
         return math.isclose(vec.magnitude(), 0)

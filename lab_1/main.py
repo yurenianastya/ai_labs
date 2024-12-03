@@ -33,14 +33,14 @@ def display_message(message):
     pygame.time.delay(1000)
 
 
-def update_game_logic(current_time, zombies):
+def update_game_logic(zombies):
     keys = pygame.key.get_pressed()
-    player.update(current_time, zombies, keys)
+    player.update(zombies, keys)
     for zombie in zombies:
         zombie.update(60, obstacles, player, zombies)
-    #if player.check_collision_with_zombies(zombies):
-        #display_message("You are dead!")
-        #return False
+    if player.check_collision_with_zombies(zombies):
+        display_message("You are dead!")
+        return False
     if not zombies:
         display_message("All the zombies are killed!")
         return False
@@ -57,11 +57,10 @@ def render_game(zombies):
 
 running = True
 while running:
-    current_time = pygame.time.get_ticks()
     running = handle_events()
     if not running:
         break
-    zombies = update_game_logic(current_time, zombies)
+    zombies = update_game_logic(zombies)
     if zombies is False:
         break
     render_game(zombies)

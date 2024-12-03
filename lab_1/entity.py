@@ -19,19 +19,23 @@ class Player():
         self.heading = pygame.Vector2(1,0)
         self.angle = 0
         self.speed = 4
-        self.bullets = []
-        self.bullet_speed = 10
         self.shoot_delay = 300
-        self.last_shot = pygame.time.get_ticks()
+        self.laser_start = self.points[0]
+        self.laser_max_length = 2000
+        self.laser_direction = pygame.Vector2(math.cos(math.radians(self.angle)), -math.sin(math.radians(self.angle)))
+        self.laser_end = self.laser_start + self.laser_direction * self.laser_max_length
+        self.shot = False
         self.obstacles = obstacles
     
 
-    def handle_input(self, keys, current_time):
+    def handle_input(self, keys, zombies):
         self._rotate(keys)
         self._move(keys)
-        if keys[pygame.K_SPACE] and current_time - self.last_shot > self.shoot_delay:
-            self.shoot_bullet()
-            self.last_shot = current_time
+        if keys[pygame.K_SPACE] and not self.shot:
+            self.shot = True
+            self._shoot_lasergun(zombies)
+        elif not keys[pygame.K_SPACE]:
+            self.shot = False
 
     def _rotate(self, keys):
         rotation_speed = 5
@@ -39,6 +43,12 @@ class Player():
             self.angle += rotation_speed
         if keys[pygame.K_RIGHT]:
             self.angle -= rotation_speed
+
+        self.laser_start = self.position
+        self.laser_direction = pygame.Vector2(
+            math.cos(math.radians(self.angle)), 
+            -math.sin(math.radians(self.angle))
+            )
 
     def _move(self, keys):
         direction = pygame.Vector2(math.cos(math.radians(self.angle)),
@@ -86,75 +96,47 @@ class Player():
             for point in self.base_shape
         ]
 
-    def _draw_direction_vector(self):
-        length = 20
-        end_pos = (
-            self.shape[0].x + length * math.cos(math.radians(self.angle)),
-            self.shape[0].y - length * math.sin(math.radians(self.angle)),
-        )
-        pygame.draw.line(utils.SCREEN, utils.COLORS['GUN'], self.shape[0], end_pos, 3)
+    def _shoot_lasergun(self, zombies):
+        closest_intersection = None
+        closest_distance = self.laser_max_length  
 
-
-    def shoot_bullet(self):
-        rad = math.radians(self.angle)
-        bullet_velocity = pygame.Vector2(
-            self.bullet_speed * math.cos(rad),
-            -self.bullet_speed * math.sin(rad)
-        )
-        self.bullets.append({"pos": self.position.copy(), "dir": bullet_velocity})
-
-    
-    def _update_bullets(self):
-        for bullet in self.bullets[:]:
-            bullet["pos"][0] += bullet["dir"][0]
-            bullet["pos"][1] += bullet["dir"][1]
-            
-            if not (0 <= bullet["pos"][0] <= utils.SCREEN_WIDTH) or not (0 <= bullet["pos"][1] <= utils.SCREEN_HEIGHT):
-                self.bullets.remove(bullet)
-            else:
-                self._check_bullet_collision_with_obstacles(bullet)
-
-
-    def _draw_bullets(self):
-        for bullet in self.bullets:
-            pygame.draw.circle(utils.SCREEN, utils.COLORS['BULLET'], (int(bullet["pos"].x), int(bullet["pos"].y)), 3)
-
-
-
-    def _check_bullet_collision_with_obstacles(self, bullet):
         for obstacle in self.obstacles:
-            if bullet["pos"].distance_to(obstacle.position) <= obstacle.radius:
-                self.bullets.remove(bullet)
-                break
-
-
-    def _check_zombie_collisions(self, zombies):
-        for zombie in zombies[:]:
-            for bullet in self.bullets[:]:
-                if bullet["pos"].distance_to(zombie.position) < zombie.radius:
+            intersection_point = utils.ray_circle_intersection(self.laser_start, self.laser_direction, obstacle.position, obstacle.radius)
+            if intersection_point:
+                distance = (intersection_point - self.laser_start).length()
+                if distance < closest_distance:
+                    closest_intersection = intersection_point
+                    closest_distance = distance
+        
+        if closest_intersection:
+            self.laser_end = closest_intersection
+        
+        for zombie in zombies:
+            intersection_point = utils.ray_circle_intersection(self.laser_start, self.laser_direction, zombie.position, zombie.radius)
+            if intersection_point:
+                distance = (intersection_point - self.laser_start).length()
+                if distance < closest_distance:
+                    closest_intersection = intersection_point
+                    closest_distance = distance
                     zombies.remove(zombie)
-                    self.bullets.remove(bullet)
-                    break
-
+        
+        self.laser_end = closest_intersection if closest_intersection else (self.laser_start + self.laser_direction * self.laser_max_length)
 
     def _wrap_around(self, max_x, max_y):
         self.position.x = self.position.x % (max_x + 1)
         self.position.y = self.position.y % (max_y + 1)
 
     
-    def update(self, current_time, zombies, keys):
-        self.handle_input(keys, current_time)
-        self._update_bullets()
-        self._check_zombie_collisions(zombies)
+    def update(self, zombies, keys):
+        self.handle_input(keys, zombies)
         self._wrap_around(utils.SCREEN_WIDTH, utils.SCREEN_HEIGHT)
 
     
     def draw(self):
         self._rotate_shape()
         pygame.draw.polygon(utils.SCREEN, utils.COLORS['PLAYER'], [(p.x, p.y) for p in self.shape])
-        self._draw_direction_vector()
-        self._draw_bullets()
-
+        if self.shot:
+            pygame.draw.line(utils.SCREEN, utils.COLORS['RED'], self.laser_start, self.laser_end, 3)
 
 class Zombie:
     
@@ -165,7 +147,7 @@ class Zombie:
         self.velocity = pygame.Vector2(1,0)
         self.heading = pygame.Vector2(1,0)
         self.side = Zombie.perp(self.heading)
-        self.max_speed = 0.08
+        self.max_speed = 0.05
         self.mass = 1.0
         self.state = sb.SteeringBehaviors(self)
         self.wander_target = pygame.Vector2(1,0)
@@ -195,6 +177,7 @@ class Zombie:
         self.heading = self.velocity.normalize()
         self.position += self.velocity * time_elapsed
         self._wrap_around(utils.SCREEN_WIDTH, utils.SCREEN_HEIGHT)
+        sb.SteeringBehaviors.enforce_non_penetration_constraint(self, zombies)
         
 
     def draw(self):
