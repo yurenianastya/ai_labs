@@ -62,9 +62,6 @@ class Trigger(ABC):
         self.active = True
     
     def is_touching_trigger(self, entity_pos, entity_radius):
-        """
-        Checks if an entity is overlapping the trigger's region.
-        """
         if self.region_of_influence:
             return self.region_of_influence.is_touching(entity_pos, entity_radius)
         return False
@@ -78,16 +75,10 @@ class Trigger(ABC):
     # Abstract methods
     @abstractmethod
     def try_trigger(self, entity):
-        """
-        Determines if the trigger should activate for the given entity.
-        """
         pass
 
     @abstractmethod
     def update(self):
-        """
-        Updates the internal state of the trigger.
-        """
         pass
 
     # Public methods
@@ -151,16 +142,9 @@ class TriggerRespawning(Trigger):
 
     @abstractmethod
     def try_trigger(self, entity):
-        """
-        Determines if the trigger should activate for the given entity.
-        Must be implemented by subclasses.
-        """
         raise NotImplementedError("This method should be implemented by a subclass.")
     
     def update(self):
-        """
-        Updates the trigger's state. Respawns the trigger if it's inactive and the delay is over.
-        """
         if self.updates_remaining_to_respawn > 0:
             self.updates_remaining_to_respawn -= 1
 
@@ -168,10 +152,6 @@ class TriggerRespawning(Trigger):
             self.set_active()
 
     def set_respawn_delay(self, num_ticks):
-        """
-        Sets the number of ticks required before the trigger can respawn.
-        :param num_ticks: Number of ticks before respawn.
-        """
         self.respawn_delay = num_ticks
         self.num_updates_remaining_until_respawn = num_ticks
 
@@ -219,10 +199,6 @@ class TriggerLimitedLifetime(Trigger):
 
     @abstractmethod
     def try_trigger(self, entity):
-        """
-        Determines if the trigger should activate for the given entity.
-        Must be implemented by subclasses.
-        """
         raise NotImplementedError("This method should be implemented by a subclass.")
 
     def update(self):
