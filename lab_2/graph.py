@@ -1,5 +1,6 @@
-import math
+import utils
 import heapq
+from collections import deque
 
 
 def a_star_search(graph, start_index, goal_index):
@@ -36,7 +37,11 @@ class Node:
     def __init__(self, index, position):
         self.index = index
         self.position = position
-
+        self.g_cost = float('inf')
+        self.h_cost = 0
+        self.f_cost = 0
+        self.parent = None
+    
 class Edge:
     def __init__(self, from_node, to_node, cost=1.0):
         self.from_node = from_node
@@ -48,35 +53,69 @@ class Graph:
         self.nodes = {}
         self.edges = {}
 
-    def add_node(self, index, position):
-        self.nodes[index] = Node(index, position)
-        self.edges[index] = []
+    def add_node(self, node):
+        if node.index not in self.nodes:
+            self.nodes[node.index] = node
+            self.edges[node.index] = []
 
     def add_edge(self, from_index, to_index, cost=1.0):
+        if from_index not in self.nodes or to_index not in self.nodes:
+            raise ValueError("One or both nodes do not exist")
         edge = Edge(from_index, to_index, cost)
         self.edges[from_index].append(edge)
         self.edges[to_index].append(Edge(to_index, from_index, cost))
 
-    def get_neighbors(self, node_index):
-        return self.edges[node_index]
+    def get_neighbors(self, node):
+        return self.edges.get(node, [])
 
-    def distance(self, node1_index, node2_index):
-        pos1 = self.nodes[node1_index].position
-        pos2 = self.nodes[node2_index].position
-        return math.sqrt((pos1[0] - pos2[0])**2 + (pos1[1] - pos2[1])**2)
+
+def flood_fill_graph(screen, start_pos, graph):
+    queue = deque([start_pos])
+    visited = set()
+
+    start_node = Node(0, start_pos)
+    graph.add_node(start_node)
+
+    while queue:
+        cx, cy = queue.popleft()
+
+        if (cx, cy) in visited:
+            continue
+
+        visited.add((cx, cy))
+        current_node = Node(len(graph.nodes), (cx, cy))
+        graph.add_node(current_node)
+
+        for dx, dy in [(-utils.CELL_SIZE, 0), (utils.CELL_SIZE, 0),
+                        (0, -utils.CELL_SIZE), (0, utils.CELL_SIZE)]:
+            nx, ny = cx + dx, cy + dy
+
+            if 0 <= nx <= 800 and 0 <= ny <= 600:
+                if utils.is_on_obstacle_border(screen, nx, ny):
+                    neighbor_node_index = None
+                    for node in graph.nodes.values():
+                        if node.position == (nx, ny):
+                            neighbor_node_index = node.index
+                            break
+                    if neighbor_node_index is None:
+                        neighbor_node = Node(len(graph.nodes), (nx, ny))
+                        graph.add_node(neighbor_node)
+                        neighbor_node_index = neighbor_node.index
+                    graph.add_edge(current_node.index, neighbor_node_index)
+                    queue.append((nx, ny))
 
 
 pov_graph = Graph()
-pov_graph.add_node(0, (30, 30))
-pov_graph.add_node(1, (40, 280))
-pov_graph.add_node(2, (270, 320))
-pov_graph.add_node(3, (40, 510))
-pov_graph.add_node(4, (330, 470))
-pov_graph.add_node(5, (430, 560))
-pov_graph.add_node(6, (780, 580))
-pov_graph.add_node(7, (650, 320))
-pov_graph.add_node(8, (770, 100))
-pov_graph.add_node(9, (520, 50))
-pov_graph.add_node(10, (380, 30))
-pov_graph.add_node(11, (400, 300))
-pov_graph.add_node(12, (500, 400))
+pov_graph.add_node((30, 30))
+pov_graph.add_node((40, 280))
+pov_graph.add_node((270, 320))
+pov_graph.add_node((40, 510))
+pov_graph.add_node((330, 470))
+pov_graph.add_node((430, 560))
+pov_graph.add_node((780, 580))
+pov_graph.add_node((650, 320))
+pov_graph.add_node((770, 100))
+pov_graph.add_node((520, 50))
+pov_graph.add_node((380, 30))
+pov_graph.add_node((400, 300))
+pov_graph.add_node((500, 400))

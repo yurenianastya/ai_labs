@@ -1,24 +1,33 @@
 import pygame
 import graph
+import utils
+
 
 pygame.init()
-screen = pygame.display.set_mode((800, 600))
+screen = pygame.display.set_mode(utils.SCREEN)
 clock = pygame.time.Clock()
-OBSTACLE_COLOR = (40, 148, 0)
+example = graph.Graph()
 
-def draw_nodes(graph):
+
+def draw_graph(graph, surface):
     for node in graph.nodes:
-        pygame.draw.circle(screen, (200, 0, 0), graph.nodes[node].position, 7)
+        for edge in graph.edges[node]:
+            from_x, from_y = graph.nodes[edge.from_node].position
+            to_x, to_y = graph.nodes[edge.to_node].position
+            pygame.draw.line(surface, utils.EDGE_COLOR, (from_x, from_y), (to_x, to_y), 1)
+    
+    for node in graph.nodes.values():
+        x, y = node.position
+        pygame.draw.circle(surface, utils.NODE_COLOR, (x, y), 3)
 
-def render_map():
-    # obstacles
-    pygame.draw.rect(screen, OBSTACLE_COLOR, pygame.Rect(450,50,50,200))
-    pygame.draw.rect(screen, OBSTACLE_COLOR, pygame.Rect(150,500,200,90))
-    pygame.draw.polygon(screen, OBSTACLE_COLOR, [(450, 550), (550, 350), (650, 350), (700, 550)])
-    pygame.draw.polygon(screen, OBSTACLE_COLOR, [(150, 250), (300, 300), (300, 450), (400, 450), (350, 100)])
-    pygame.draw.polygon(screen, OBSTACLE_COLOR, [(10, 500), (10, 300), (200, 350)])
-    pygame.draw.polygon(screen, OBSTACLE_COLOR, [(50, 250), (220, 80), (50, 80)])
-    pygame.draw.polygon(screen, OBSTACLE_COLOR, [(650, 300), (750, 100), (550, 100)])
+
+
+def draw_obstacles():
+    for rects in utils.rects:
+        pygame.draw.rect(screen, utils.OBSTACLE_COLOR, rects)
+    for polygons in utils.polygons:
+        pygame.draw.polygon(screen, utils.OBSTACLE_COLOR, polygons)
+    
 
 def handle_events():
     for event in pygame.event.get():
@@ -26,25 +35,33 @@ def handle_events():
             return False
         if event.type == pygame.KEYDOWN and event.key == pygame.K_q:
             return False
+        if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    example.nodes.clear()
+                    generate_graph()
     return True
 
+
+def generate_graph():
+    start_pos = utils.CELL_SIZE // 2, utils.CELL_SIZE // 2
+    graph.flood_fill_graph(screen, start_pos, example)
 
 running = True
 while running:
     running = handle_events()
     if not running:
         break
-    screen.fill((255, 255, 255))
+    screen.fill(utils.MAP_COLOR)
     # border for contrast
     pygame.draw.rect(
         screen,
-        OBSTACLE_COLOR,
+        utils.OBSTACLE_COLOR,
         pygame.Rect(0, 0, 800, 600),
         10,
     )
 
-    render_map()
-    draw_nodes(graph.pov_graph)
+    draw_obstacles()
+    draw_graph(example, screen)
 
     pygame.display.flip()
     clock.tick(60)
