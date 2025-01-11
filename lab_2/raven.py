@@ -1,29 +1,28 @@
 from dataclasses import dataclass
 from collections import defaultdict
 import math
-from typing import List, Optional
+from typing import Optional
 import pygame
 import triggers
 import graph
-
+import utils
 
 class RavenMap:
 
-    def __init__(self, walls, spawn_points):
+    def __init__(self, walls):
         self.walls = walls
         # class for managing event triggers
         self.trigger_sys = triggers.TriggerSystem()
-        self.spawn_points = spawn_points
+        self.spawn_points = utils.SPAWN_POINTS
         self.nav_graph = graph.NavGraph()
-
-    def render():
-        pass
-
-    def load_map(filename):
-        return False
     
-    def calc_travel_cost_between_nodes(node1, node2):
-        pass
+    def calc_travel_cost_between_nodes(graph, node1, node2):
+        if node1.index not in graph.nodes or node2.index not in graph.nodes:
+            raise ValueError("One or both nodes do not exist in the graph")
+        for edge in graph.edges[node1.index]:
+            if edge.to_node == node2.index:
+                return edge.cost
+        return None
 
     def update_trigger_sys(bots):
         pass
@@ -43,9 +42,6 @@ class RavenWeapons:
     
     def shoot_at(target):
         return 0
-    
-    def render():
-        pass
 
     def get_desirability(dist_to_target):
         return 0
@@ -76,14 +72,8 @@ class RavenGame:
         # this list contains any active projectiles 
         self.projectiles = projectiles
 
-    def render():
-        pass
-
     def update():
         pass
-    
-    def load_map(filename):
-        return False
 
     def is_path_obstructed(vec_a, vec_b, bounding_radius=0):
         return False
@@ -107,6 +97,8 @@ class RavenBot:
         self.goal_arbitration_regulator = Regulator(1.0)
         self.weapon_selection_regulator = Regulator(1.0)
         self.possessed = False
+        self.radius = 5
+        self.color = utils.BOT_COLOR
 
     def update(self):
         self.brain.process()
