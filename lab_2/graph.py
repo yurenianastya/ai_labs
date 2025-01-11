@@ -2,7 +2,6 @@ import heapq
 import math
 import utils
 from collections import deque
-from heapq import heappop, heappush
 
 
 class Node:
@@ -53,15 +52,39 @@ class Graph:
                 if neighbor_index in self.nodes:
                     neighbor_node = self.nodes[neighbor_index]
                     cost = 1.0 if dx == 0 or dy == 0 else 1.414
-                    if not utils.is_on_obstacle_border(node.x + dx, node.y + dy):
+                    if not utils.is_on_obstacle_border(utils.SCREEN, node.x + dx, node.y + dy):
                         self.add_edge(node.index, neighbor_node.index, cost)
 
     def add_edge(self, from_index, to_index, cost=1.0):
         if from_index not in self.nodes or to_index not in self.nodes:
             raise ValueError("One or both nodes do not exist")
+        
+        from_node = self.nodes[from_index]
+        to_node = self.nodes[to_index]
+        from_pos = (from_node.x, from_node.y)
+        to_pos = (to_node.x, to_node.y)
+
+        if not self.is_line_clear(from_pos, to_pos):
+            return
+        
         edge = Edge(from_index, to_index, cost)
         self.edges[from_index].append(edge)
         self.edges[to_index].append(Edge(to_index, from_index, cost))
+
+    def is_line_clear(self, from_pos, to_pos):
+        for polygon in utils.POLYGONS:
+            if utils.ray_intersects_polygon(from_pos, to_pos, polygon):
+                return False
+        for rect in utils.RECTS:
+            corners = [rect.topleft, rect.topright, rect.bottomright, rect.bottomleft]
+            if utils.ray_intersects_polygon(from_pos, to_pos, corners):
+                return False
+        for walls in utils.WALLS:
+            corners = [walls.topleft, walls.topright, walls.bottomright, walls.bottomleft]
+            if utils.ray_intersects_polygon(from_pos, to_pos, corners):
+                return False
+
+        return True
 
     def get_neighbors(self, node):
         neighbors = []

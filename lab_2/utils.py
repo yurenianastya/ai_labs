@@ -1,7 +1,8 @@
+import math
 import pygame
 
 
-SCREEN = (800, 600)
+SCREEN = pygame.display.set_mode((800, 600))
 OBSTACLE_COLOR = (40, 148, 0)
 NODE_COLOR = (255, 0, 0)
 EDGE_COLOR = (0, 0, 200)
@@ -20,15 +21,27 @@ SPAWN_POINTS = [
 
 POLYGONS = [
     [(450, 550), (550, 350), (650, 350), (700, 550)],
-    [(150, 250), (300, 300), (300, 450), (400, 450), (340, 80)],
-    [(10, 500), (10, 300), (200, 350)],
-    [(40, 250), (190, 90), (40, 90)],
+    [(150, 250), (300, 320), (300, 440), (400, 440), (340, 80)],
+    [(10, 500), (10, 300), (160, 400)],
+    [(40, 200), (200, 80), (40, 80)],
     [(650, 300), (750, 100), (550, 100)],
 ]
 
 RECTS = [
     pygame.Rect(455,50,50,200),
     pygame.Rect(150,490,200,100),
+    
+]
+
+WALLS = [
+    # left wall
+    pygame.Rect(0, 0, 10, 600),
+    # lower wall
+    pygame.Rect(0, 590, 800, 10),
+    # right wall
+    pygame.Rect(790, 0, 10, 600),
+    # upper wall
+    pygame.Rect(0, 0, 800, 10),
 ]
 
 def is_on_obstacle_border(screen, nx, ny, border_tolerance=1):
@@ -58,14 +71,80 @@ def create_and_draw_obstacles(screen):
         pygame.draw.rect(screen, OBSTACLE_COLOR, rects)
     for polygons in POLYGONS:
         pygame.draw.polygon(screen, OBSTACLE_COLOR, polygons)
-    # border for contrast
-    pygame.draw.rect(
-        screen,
-        OBSTACLE_COLOR,
-        pygame.Rect(0, 0, 800, 600),
-        10,
-    )
+    for walls in WALLS:
+        pygame.draw.rect(screen, OBSTACLE_COLOR, walls)
 
 
 def get_node_by_position(graph, position):
     return next((node for node in graph.nodes.values() if node.position == position), None)
+
+
+def line_intersection(p1, p2, q1, q2):
+    def ccw(a, b, c):
+        return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0])
+
+    if ccw(p1, q1, q2) != ccw(p2, q1, q2) and ccw(p1, p2, q1) != ccw(p1, p2, q2):
+        # Compute intersection point
+        s1_x = p2[0] - p1[0]
+        s1_y = p2[1] - p1[1]
+        s2_x = q2[0] - q1[0]
+        s2_y = q2[1] - q1[1]
+
+        s = (-s1_y * (p1[0] - q1[0]) + s1_x * (p1[1] - q1[1])) / (-s2_x * s1_y + s1_x * s2_y)
+        t = ( s2_x * (p1[1] - q1[1]) - s2_y * (p1[0] - q1[0])) / (-s2_x * s1_y + s1_x * s2_y)
+
+        if 0 <= s <= 1 and 0 <= t <= 1:
+            # Intersection detected
+            intersection_x = p1[0] + (t * s1_x)
+            intersection_y = p1[1] + (t * s1_y)
+            return (intersection_x, intersection_y)
+    return None
+
+
+def ray_intersects_polygon(start, end, polygon):
+    for i in range(len(polygon)):
+        p1 = polygon[i]
+        p2 = polygon[(i + 1) % len(polygon)]
+        if line_intersection(start, end, p1, p2) is not None:
+            return True
+    return False
+
+
+def cast_ray(start, direction, max_distance, obstacles):
+    """
+    Cast a single ray in `direction` up to `max_distance`.
+    Includes screen frame and other obstacles.
+    """
+    end = (start[0] + direction[0] * max_distance, start[1] + direction[1] * max_distance)
+    closest_intersection = None
+    min_distance = max_distance
+
+    # Check each obstacle
+    for polygon in SCREEN_FRAME + POLYGONS:
+        if ray_intersects_polygon(start, end, polygon):
+            for i in range(len(polygon)):
+                p1 = polygon[i]
+                p2 = polygon[(i + 1) % len(polygon)]
+                intersection = line_intersection(start, end, p1, p2)
+                if intersection:
+                    dist = math.dist(start, intersection)
+                    if dist < min_distance:
+                        closest_intersection = intersection
+                        min_distance = dist
+
+    for rect in RECTS:
+        corners = [
+            rect.topleft, rect.topright, rect.bottomright, rect.bottomleft
+        ]
+        if ray_intersects_polygon(start, end, corners):
+            for i in range(len(corners)):
+                p1 = corners[i]
+                p2 = corners[(i + 1) % len(corners)]
+                intersection = line_intersection(start, end, p1, p2)
+                if intersection:
+                    dist = math.dist(start, intersection)
+                    if dist < min_distance:
+                        closest_intersection = intersection
+                        min_distance = dist
+
+    return closest_intersection or end

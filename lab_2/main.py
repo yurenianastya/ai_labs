@@ -4,17 +4,15 @@ import utils
 
 
 pygame.init()
-screen = pygame.display.set_mode(utils.SCREEN)
 clock = pygame.time.Clock()
-
 map_graph = graph.Graph()
 # initial obstacle drawing for graph generating
 #  which uses pixel color to determine borders
-utils.create_and_draw_obstacles(screen)
-map_graph.generate_graph(screen)
+utils.create_and_draw_obstacles(utils.SCREEN)
+map_graph.generate_graph(utils.SCREEN)
 start = map_graph.nodes.get(20)
 end = map_graph.nodes.get(1520)
-path = map_graph.a_star(start, end)
+# path = map_graph.a_star(start, end)
 
 
 def draw_graph(graph, surface):
@@ -52,11 +50,11 @@ while running:
     if not running:
         break
     
-    screen.fill(utils.MAP_COLOR)
+    utils.SCREEN.fill(utils.MAP_COLOR)
     
-    utils.create_and_draw_obstacles(screen)
-    draw_path(path, screen, start, end)
-    draw_graph(map_graph, screen)
+    utils.create_and_draw_obstacles(utils.SCREEN)
+    # draw_path(path, screen, start, end)
+    draw_graph(map_graph, utils.SCREEN)
 
     pygame.display.flip()
     clock.tick(60)
