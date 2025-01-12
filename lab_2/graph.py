@@ -43,26 +43,8 @@ class Graph:
             self.nodes[node.index] = node
             self.edges[node.index] = []
 
-            directions = [
-                (0, 1), (1, 0), (0, -1), (-1, 0),
-                (1, 1), (1, -1), (-1, 1), (-1, -1)
-            ]
-
-            for dx, dy in directions:
-                neighbor_index = (node.x + dx, node.y + dy)
-                if neighbor_index in self.nodes:
-                    neighbor_node = self.nodes[neighbor_index]
-                    if dx == 0 or dy == 0:
-                        cost = 1.0
-                    else:
-                        cost = 1.414
-                    if not utils.is_on_obstacle_border(utils.SCREEN, node.x + dx, node.y + dy):
-                        self.add_edge(node.index, neighbor_node.index, cost)
-
 
     def add_edge(self, from_index, to_index, cost):
-        if from_index not in self.nodes or to_index not in self.nodes:
-            raise ValueError("One or both nodes do not exist")
         
         from_node = self.nodes[from_index]
         to_node = self.nodes[to_index]
@@ -92,6 +74,7 @@ class Graph:
 
         return True
 
+
     def get_neighbors(self, node):
         neighbors = []
         for edge in self.edges.get(node.index, []):
@@ -99,10 +82,12 @@ class Graph:
                 neighbors.append(self.nodes.get(edge.to_node, None))
         return neighbors
     
+
     def heuristic(self, node1, node2):
-        dx = abs(node1.x - node2.x)
-        dy = abs(node1.y - node2.y)
-        return max(dx, dy) + (math.sqrt(2) - 1) * min(dx, dy)
+        dx = node1.x - node2.x
+        dy = node1.y - node2.y
+        return math.sqrt(dx**2 + dy**2)
+    
 
     def a_star(self, start_index, goal_index):
         open_set = []
@@ -132,6 +117,7 @@ class Graph:
     
     
     def flood_fill_graph(self, x, y):
+        edge_dist = utils.CELL_SIZE
         queue = deque([(x, y)])
         visited = set()
 
@@ -148,13 +134,13 @@ class Graph:
             current_node = Node(len(self.nodes), cx, cy)
             self.add_node(current_node)
 
-            for dx, dy in [(-utils.CELL_SIZE, 0), (utils.CELL_SIZE, 0),
-                           (0, -utils.CELL_SIZE), (0, utils.CELL_SIZE),
-                           (-utils.CELL_SIZE, -utils.CELL_SIZE), (utils.CELL_SIZE, utils.CELL_SIZE),
-                           (-utils.CELL_SIZE, utils.CELL_SIZE), (utils.CELL_SIZE, -utils.CELL_SIZE)]:
+            for dx, dy in [(0, -edge_dist), (0, edge_dist),
+                           (-edge_dist, 0), (edge_dist, 0),
+                           (-edge_dist, -edge_dist), (edge_dist, -edge_dist),
+                           (-edge_dist, edge_dist), (edge_dist, edge_dist)]:
                 nx, ny = cx + dx, cy + dy
 
-                if 0 <= nx <= 800 and 0 <= ny <= 600:
+                if 0 <= nx <= utils.SCREEN.get_width() and 0 <= ny <= utils.SCREEN.get_height():
                     if utils.is_on_obstacle_border(nx, ny):
                         if dx == 0 or dy == 0:
                             cost = 1.0
@@ -174,6 +160,7 @@ class Graph:
 
 
     def generate_graph(self):
+        utils.create_and_draw_obstacles()
         start_pos = utils.CELL_SIZE // 2, utils.CELL_SIZE // 2
         self.flood_fill_graph(start_pos[0], start_pos[1])
 

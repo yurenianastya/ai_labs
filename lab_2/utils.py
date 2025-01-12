@@ -2,7 +2,8 @@ import math
 import pygame
 
 
-SCREEN = pygame.display.set_mode((800, 600))
+SCREEN = pygame.display.set_mode((1000, 800))
+CLOCK = pygame.time.Clock()
 OBSTACLE_COLOR = (40, 148, 0)
 NODE_COLOR = (255, 0, 0)
 EDGE_COLOR = (0, 0, 200)
@@ -10,33 +11,33 @@ MAP_COLOR = (255, 255, 255)
 BOT_COLOR = (127, 0, 255)
 CELL_SIZE = 20
 
-SPAWN_POINTS = [
-    
-]
-
 POLYGONS = [
-    [(450, 550), (550, 350), (650, 350), (700, 550)],
+    [(500, 500), (600, 300), (700, 300), (800, 500)],
     [(150, 250), (300, 320), (300, 440), (400, 440), (340, 80)],
-    [(10, 500), (10, 300), (160, 400)],
+    [(10, 700), (10, 500), (160, 600)],
     [(40, 200), (200, 80), (40, 80)],
-    [(650, 300), (750, 100), (550, 100)],
+    [(800, 300), (950, 300), (800, 100)],
 ]
 
 RECTS = [
-    pygame.Rect(455,50,50,200),
-    pygame.Rect(150,490,200,100),
+    pygame.Rect(650,50,60,200),
+    pygame.Rect(250,650,200,100),
+    pygame.Rect(650,590,160,200),
+]
+
+AMMO = [
     
 ]
 
 WALLS = [
     # left wall
-    pygame.Rect(0, 0, 10, 600),
+    pygame.Rect(0, 0, 10, SCREEN.get_height()),
     # lower wall
-    pygame.Rect(0, 590, 800, 10),
+    pygame.Rect(0, SCREEN.get_height() - 10, SCREEN.get_width(), 10),
     # right wall
-    pygame.Rect(790, 0, 10, 600),
+    pygame.Rect(SCREEN.get_width() - 10, 0, 10, SCREEN.get_height()),
     # upper wall
-    pygame.Rect(0, 0, 800, 10),
+    pygame.Rect(0, 0, SCREEN.get_width(), 10),
 ]
 
 def is_on_obstacle_border(nx, ny, border_tolerance=1):
@@ -60,6 +61,7 @@ def is_on_obstacle_border(nx, ny, border_tolerance=1):
     if all_neighbors_are_obstacles:
         return False
     return True
+
 
 def create_and_draw_obstacles():
     for rects in RECTS:

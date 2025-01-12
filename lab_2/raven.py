@@ -1,6 +1,4 @@
-from dataclasses import dataclass
 from collections import defaultdict
-import math
 from typing import Optional
 import pygame
 import triggers
@@ -10,8 +8,7 @@ import utils
 class RavenMap:
 
     def __init__(self, walls):
-        self.walls = walls
-        # class for managing event triggers
+        self.walls = utils.WALLS
         self.trigger_sys = triggers.TriggerSystem()
         self.spawn_points = utils.SPAWN_POINTS
         self.nav_graph = graph.NavGraph()
@@ -83,14 +80,7 @@ class RavenBot:
         self.brain = GoalThink(self)
         self.sensory_memory = SensoryMemory(self, 15.0)
         self.targeting_system = TargetingSystem(self)
-        self.weapon_system = WeaponSystem(self, 10, 1, 2)
-        self.vision_update_regulator = Regulator(1.0)
-        self.target_selection_regulator = Regulator(1.0)
-        self.goal_arbitration_regulator = Regulator(1.0)
-        self.weapon_selection_regulator = Regulator(1.0)
-        self.possessed = False
         self.radius = 5
-        self.color = utils.BOT_COLOR
         self.node = spawn_node
         self.position = pygame.Vector2(spawn_node.x, spawn_node.y)
 
@@ -110,9 +100,6 @@ class RavenBot:
 
     def update_movement(self):
         pass
-
-    def is_possessed(self):
-        return self.possessed
 
 
 class MemoryRecord:
@@ -279,144 +266,3 @@ class Weapon:
     def evaluate_situation(self, target_position):
         distance = self.owner.position.distance_to(target_position)
         return self.damage / (distance + 1)  # Example heuristic
-
-
-class Blaster(Weapon):
-    def __init__(self, owner):
-        super().__init__(owner, ammo=50, projectile_speed=300, damage=10)
-
-
-class Shotgun(Weapon):
-    def __init__(self, owner):
-        super().__init__(owner, ammo=20, projectile_speed=200, damage=50)
-
-    def shoot_at(self, target_position):
-        if self.ammo > 0:
-            self.ammo -= 1
-            print(f"Shotgun blast at {target_position}. Effective at close range!")
-        else:
-            print("Out of ammo!")
-
-
-class RocketLauncher(Weapon):
-    def __init__(self, owner):
-        super().__init__(owner, ammo=5, projectile_speed=100, damage=100)
-
-    def shoot_at(self, target_position):
-        if self.ammo > 0:
-            self.ammo -= 1
-            print(f"Launching rocket at {target_position}!")
-        else:
-            print("Out of ammo!")
-
-
-class WeaponSystem:
-    def __init__(self, owner, reaction_time, aim_accuracy, aim_persistence):
-        self.owner = owner
-        self.weapon_map = {}
-        self.current_weapon = None
-        self.reaction_time = reaction_time
-        self.aim_accuracy = aim_accuracy
-        self.aim_persistence = aim_persistence
-
-    def initialize(self):
-        blaster = self.create_blaster_weapon()
-        self.weapon_map[blaster.type] = blaster
-        self.current_weapon = blaster
-
-    def take_aim_and_shoot(self):
-        if (self.owner.target_system.is_target_shootable() or
-            (self.owner.target_system.get_time_target_has_been_out_of_view() < self.aim_persistence)):
-            
-            aiming_pos = self.owner.target_system.get_target_bot().position
-            
-            if self.get_current_weapon().get_type() in ["rocket_launcher", "blaster"]:
-                aiming_pos = self.predict_future_position_of_target()
-                
-                if (self.owner.rotate_facing_toward_position(aiming_pos) and
-                    (self.owner.target_system.get_time_target_has_been_visible() > self.reaction_time) and
-                    self.owner.world.is_line_of_sight_ok(aiming_pos, self.owner.position)):
-                    self.add_noise_to_aim(aiming_pos)
-                    self.get_current_weapon().shoot_at(aiming_pos)
-            
-            else:
-                if (self.owner.rotate_facing_toward_position(aiming_pos) and
-                    (self.owner.target_system.get_time_target_has_been_visible() > self.reaction_time)):
-                    self.add_noise_to_aim(aiming_pos)
-                    self.get_current_weapon().shoot_at(aiming_pos)
-        else:
-            self.owner.rotate_facing_toward_position(self.owner.position + self.owner.heading)
-
-
-    def select_weapon(self):
-        if not self.owner.targeting_system.is_target_present():
-            return
-        target_position = self.owner.targeting_system.get_last_recorded_position()
-        best_weapon = max(
-            self.weapon_map.values(),
-            key=lambda weapon: weapon.evaluate_situation(target_position)
-        )
-        self.current_weapon = best_weapon
-
-    def add_weapon(self, weapon_type):
-        if weapon_type in self.weapon_map:
-            self.weapon_map[weapon_type].add_ammo()
-        else:
-            new_weapon = self.create_weapon_of_type(weapon_type)
-            self.weapon_map[weapon_type] = new_weapon
-
-    def change_weapon(self, weapon_type):
-        if weapon_type in self.weapon_map:
-            self.current_weapon = self.weapon_map[weapon_type]
-
-    def get_current_weapon(self):
-        return self.current_weapon
-
-    def get_weapon_from_inventory(self, weapon_type):
-        return self.weapon_map.get(weapon_type)
-
-    def get_ammo_remaining_for_weapon(self, weapon_type):
-        weapon = self.get_weapon_from_inventory(weapon_type)
-        return weapon.ammo if weapon else 0
-
-    def reaction_time(self):
-        return self.reaction_time
-
-    def predict_future_position_of_target(self):
-        target_position = self.owner.targeting_system.get_last_recorded_position()
-        target_velocity = self.owner.targeting_system.get_target().velocity
-        weapon_speed = self.current_weapon.projectile_speed
-        time_to_target = self.owner.position.distance_to(target_position) / weapon_speed
-        return target_position + target_velocity * time_to_target
-
-    def add_noise_to_aim(self, aiming_position):
-        deviation = self.aim_accuracy * (2 * math.random() - 1)
-        angle = math.atan2(
-            aiming_position.y - self.owner.position.y,
-            aiming_position.x - self.owner.position.x
-        ) + deviation
-        distance = self.owner.position.distance_to(aiming_position)
-        return pygame.Vector2(
-            self.owner.position.x + math.cos(angle) * distance,
-            self.owner.position.y + math.sin(angle) * distance
-        )
-
-    def create_blaster_weapon(self):
-        return Blaster(self.owner)
-
-    def create_weapon_of_type(self, weapon_type):
-        weapon_classes = {0: Blaster, 1: Shotgun, 2: RocketLauncher}
-        return weapon_classes[weapon_type](self.owner)
-
-
-class Regulator:
-    def __init__(self, num_updates_per_second_required):
-        self.update_period = 1000 / num_updates_per_second_required
-        self.next_update_time = pygame.time.get_ticks() + self.update_period
-
-    def is_ready(self):
-        current_time = pygame.time.get_ticks()
-        if current_time >= self.next_update_time:
-            self.next_update_time = current_time + self.update_period
-            return True
-        return False
