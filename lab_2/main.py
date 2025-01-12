@@ -1,6 +1,7 @@
 import pygame
 import graph
 import utils
+import raven
 
 
 pygame.init()
@@ -8,11 +9,27 @@ clock = pygame.time.Clock()
 map_graph = graph.Graph()
 # initial obstacle drawing for graph generating
 #  which uses pixel color to determine borders
-utils.create_and_draw_obstacles(utils.SCREEN)
-map_graph.generate_graph(utils.SCREEN)
-start = map_graph.nodes.get(20)
-end = map_graph.nodes.get(1520)
-# path = map_graph.a_star(start, end)
+utils.create_and_draw_obstacles()
+map_graph.generate_graph()
+
+BOTS = [
+    raven.RavenBot(
+        map_graph.nodes.get(30)
+    ),
+    raven.RavenBot(
+        map_graph.nodes.get(1600)
+    ),
+    raven.RavenBot(
+        map_graph.nodes.get(700)
+    ),
+    raven.RavenBot(
+        map_graph.nodes.get(640)
+    ),
+]
+
+start = BOTS[2].node
+end = BOTS[3].node
+path = map_graph.a_star(start, end)
 
 
 def draw_graph(graph, surface):
@@ -35,6 +52,12 @@ def draw_path(path, surface, start_node, goal_node):
     pygame.draw.circle(surface, utils.BOT_COLOR, (start_node.x, start_node.y), 8)
     pygame.draw.circle(surface, utils.EDGE_COLOR, (goal_node.x, goal_node.y), 8)
 
+
+def draw_bots(bots, surface):
+    for bot in bots:
+        pygame.draw.circle(surface, utils.BOT_COLOR, bot.position, 8)
+
+
 def handle_events():
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -52,9 +75,10 @@ while running:
     
     utils.SCREEN.fill(utils.MAP_COLOR)
     
-    utils.create_and_draw_obstacles(utils.SCREEN)
-    # draw_path(path, screen, start, end)
+    utils.create_and_draw_obstacles()
+    draw_path(path, utils.SCREEN, start, end)
     draw_graph(map_graph, utils.SCREEN)
+    draw_bots(BOTS, utils.SCREEN)
 
     pygame.display.flip()
     clock.tick(60)

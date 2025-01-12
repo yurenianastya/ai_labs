@@ -32,6 +32,7 @@ class Edge:
         self.to_node = to_node
         self.cost = cost
 
+
 class Graph:
     def __init__(self):
         self.nodes = {}
@@ -51,11 +52,15 @@ class Graph:
                 neighbor_index = (node.x + dx, node.y + dy)
                 if neighbor_index in self.nodes:
                     neighbor_node = self.nodes[neighbor_index]
-                    cost = 1.0 if dx == 0 or dy == 0 else 1.414
+                    if dx == 0 or dy == 0:
+                        cost = 1.0
+                    else:
+                        cost = 1.414
                     if not utils.is_on_obstacle_border(utils.SCREEN, node.x + dx, node.y + dy):
                         self.add_edge(node.index, neighbor_node.index, cost)
 
-    def add_edge(self, from_index, to_index, cost=1.0):
+
+    def add_edge(self, from_index, to_index, cost):
         if from_index not in self.nodes or to_index not in self.nodes:
             raise ValueError("One or both nodes do not exist")
         
@@ -70,6 +75,7 @@ class Graph:
         edge = Edge(from_index, to_index, cost)
         self.edges[from_index].append(edge)
         self.edges[to_index].append(Edge(to_index, from_index, cost))
+
 
     def is_line_clear(self, from_pos, to_pos):
         for polygon in utils.POLYGONS:
@@ -94,7 +100,9 @@ class Graph:
         return neighbors
     
     def heuristic(self, node1, node2):
-        return math.sqrt((node1.x - node2.x) ** 2 + (node1.y - node2.y) ** 2)
+        dx = abs(node1.x - node2.x)
+        dy = abs(node1.y - node2.y)
+        return max(dx, dy) + (math.sqrt(2) - 1) * min(dx, dy)
 
     def a_star(self, start_index, goal_index):
         open_set = []
@@ -122,7 +130,8 @@ class Graph:
 
         return None
     
-    def flood_fill_graph(self, screen, x, y):
+    
+    def flood_fill_graph(self, x, y):
         queue = deque([(x, y)])
         visited = set()
 
@@ -146,7 +155,11 @@ class Graph:
                 nx, ny = cx + dx, cy + dy
 
                 if 0 <= nx <= 800 and 0 <= ny <= 600:
-                    if utils.is_on_obstacle_border(screen, nx, ny):
+                    if utils.is_on_obstacle_border(nx, ny):
+                        if dx == 0 or dy == 0:
+                            cost = 1.0
+                        else:
+                            cost = 1.414
                         neighbor_node_index = None
                         for node in self.nodes.values():
                             if node.x == nx and node.y == ny:
@@ -156,13 +169,13 @@ class Graph:
                             neighbor_node = Node(len(self.nodes), nx, ny)
                             self.add_node(neighbor_node)
                             neighbor_node_index = neighbor_node.index
-                        self.add_edge(current_node.index, neighbor_node_index)
+                        self.add_edge(current_node.index, neighbor_node_index, cost)
                         queue.append((nx, ny))
 
 
-    def generate_graph(self, screen):
+    def generate_graph(self):
         start_pos = utils.CELL_SIZE // 2, utils.CELL_SIZE // 2
-        self.flood_fill_graph(screen, start_pos[0], start_pos[1])
+        self.flood_fill_graph(start_pos[0], start_pos[1])
 
     
     def reconstruct_path(self, came_from, current):

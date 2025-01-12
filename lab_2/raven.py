@@ -15,14 +15,6 @@ class RavenMap:
         self.trigger_sys = triggers.TriggerSystem()
         self.spawn_points = utils.SPAWN_POINTS
         self.nav_graph = graph.NavGraph()
-    
-    def calc_travel_cost_between_nodes(graph, node1, node2):
-        if node1.index not in graph.nodes or node2.index not in graph.nodes:
-            raise ValueError("One or both nodes do not exist in the graph")
-        for edge in graph.edges[node1.index]:
-            if edge.to_node == node2.index:
-                return edge.cost
-        return None
 
     def update_trigger_sys(bots):
         pass
@@ -87,11 +79,11 @@ class RavenGame:
 
 class RavenBot:
 
-    def __init__(self):
+    def __init__(self, spawn_node):
         self.brain = GoalThink(self)
-        self.sensory_memory = SensoryMemory(self)
+        self.sensory_memory = SensoryMemory(self, 15.0)
         self.targeting_system = TargetingSystem(self)
-        self.weapon_system = WeaponSystem(self)
+        self.weapon_system = WeaponSystem(self, 10, 1, 2)
         self.vision_update_regulator = Regulator(1.0)
         self.target_selection_regulator = Regulator(1.0)
         self.goal_arbitration_regulator = Regulator(1.0)
@@ -99,6 +91,8 @@ class RavenBot:
         self.possessed = False
         self.radius = 5
         self.color = utils.BOT_COLOR
+        self.node = spawn_node
+        self.position = pygame.Vector2(spawn_node.x, spawn_node.y)
 
     def update(self):
         self.brain.process()
@@ -121,7 +115,6 @@ class RavenBot:
         return self.possessed
 
 
-@dataclass
 class MemoryRecord:
     time_last_sensed: int = 0
     time_became_visible: int = 0
@@ -214,7 +207,7 @@ class SensoryMemory:
 
 
 class TargetingSystem:
-    def __init__(self, owner):
+    def __init__(self, owner: RavenBot):
         self.owner = owner
         self.current_target = None
 

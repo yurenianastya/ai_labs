@@ -11,12 +11,7 @@ BOT_COLOR = (127, 0, 255)
 CELL_SIZE = 20
 
 SPAWN_POINTS = [
-    # indexes of nodes to spawn on. We always have 4 bots
-    23,
-    1039,
-    1585,
-    439,
-    857,
+    
 ]
 
 POLYGONS = [
@@ -44,8 +39,8 @@ WALLS = [
     pygame.Rect(0, 0, 800, 10),
 ]
 
-def is_on_obstacle_border(screen, nx, ny, border_tolerance=1):
-    if screen.get_at((nx, ny)) == MAP_COLOR:
+def is_on_obstacle_border(nx, ny, border_tolerance=1):
+    if SCREEN.get_at((nx, ny)) == MAP_COLOR:
         return True
     
     all_neighbors_are_obstacles = True
@@ -56,8 +51,8 @@ def is_on_obstacle_border(screen, nx, ny, border_tolerance=1):
             
             neighbor_x, neighbor_y = nx + dx, ny + dy
 
-            if 0 <= neighbor_x < screen.get_width() and 0 <= neighbor_y < screen.get_height():
-                if screen.get_at((neighbor_x, neighbor_y)) != OBSTACLE_COLOR:
+            if 0 <= neighbor_x < SCREEN.get_width() and 0 <= neighbor_y < SCREEN.get_height():
+                if SCREEN.get_at((neighbor_x, neighbor_y)) != OBSTACLE_COLOR:
                     all_neighbors_are_obstacles = False
                     break
         if not all_neighbors_are_obstacles:
@@ -66,13 +61,13 @@ def is_on_obstacle_border(screen, nx, ny, border_tolerance=1):
         return False
     return True
 
-def create_and_draw_obstacles(screen):
+def create_and_draw_obstacles():
     for rects in RECTS:
-        pygame.draw.rect(screen, OBSTACLE_COLOR, rects)
+        pygame.draw.rect(SCREEN, OBSTACLE_COLOR, rects)
     for polygons in POLYGONS:
-        pygame.draw.polygon(screen, OBSTACLE_COLOR, polygons)
+        pygame.draw.polygon(SCREEN, OBSTACLE_COLOR, polygons)
     for walls in WALLS:
-        pygame.draw.rect(screen, OBSTACLE_COLOR, walls)
+        pygame.draw.rect(SCREEN, OBSTACLE_COLOR, walls)
 
 
 def get_node_by_position(graph, position):
@@ -110,17 +105,13 @@ def ray_intersects_polygon(start, end, polygon):
     return False
 
 
-def cast_ray(start, direction, max_distance, obstacles):
-    """
-    Cast a single ray in `direction` up to `max_distance`.
-    Includes screen frame and other obstacles.
-    """
+def cast_ray(start, direction, max_distance):
     end = (start[0] + direction[0] * max_distance, start[1] + direction[1] * max_distance)
     closest_intersection = None
     min_distance = max_distance
 
     # Check each obstacle
-    for polygon in SCREEN_FRAME + POLYGONS:
+    for polygon in POLYGONS:
         if ray_intersects_polygon(start, end, polygon):
             for i in range(len(polygon)):
                 p1 = polygon[i]
