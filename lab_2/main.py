@@ -5,30 +5,27 @@ import raven
 
 
 pygame.init()
-# initial obstacle drawing for graph generating
-#  which uses pixel color to determine borders
 map_graph = graph.Graph()
 map_graph.generate_graph()
 
 BOTS = [
     raven.RavenBot(
-        map_graph.nodes.get(45)
+        map_graph.nodes.get(45),
+        map_graph
     ),
     raven.RavenBot(
-        map_graph.nodes.get(3100)
+        map_graph.nodes.get(3100),
+        map_graph
     ),
     raven.RavenBot(
-        map_graph.nodes.get(500)
+        map_graph.nodes.get(500),
+        map_graph
     ),
     raven.RavenBot(
-        map_graph.nodes.get(1200)
+        map_graph.nodes.get(1200),
+        map_graph
     ),
 ]
-
-
-start = BOTS[1].node
-end = BOTS[2].node
-path = map_graph.a_star(start, end)
 
 
 def draw_graph(graph, surface):
@@ -71,16 +68,18 @@ while running:
     running = handle_events()
     if not running:
         break
-    
+
+    dt = utils.CLOCK.tick(60) / 1000.0
+    for bot in BOTS:
+        bot.update(dt)
+
     utils.SCREEN.fill(utils.MAP_COLOR)
-    
+
     utils.create_and_draw_obstacles()
-    draw_path(path, utils.SCREEN, start, end)
     draw_graph(map_graph, utils.SCREEN)
     draw_bots(BOTS, utils.SCREEN)
 
     pygame.display.flip()
-    utils.CLOCK.tick(60)
 
 
 pygame.quit()

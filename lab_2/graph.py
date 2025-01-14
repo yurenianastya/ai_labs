@@ -1,5 +1,6 @@
 import heapq
 import math
+import pygame
 import utils
 from collections import deque
 
@@ -10,6 +11,7 @@ class Node:
         self.index = index
         self.x = x
         self.y = y
+        self.position = pygame.Vector2(x, y)
         self.extra_info = None
         self.g_cost = float('inf')
         self.h_cost = 0
@@ -34,6 +36,7 @@ class Edge:
 
 
 class Graph:
+
     def __init__(self):
         self.nodes = {}
         self.edges = {}

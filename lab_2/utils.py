@@ -25,10 +25,6 @@ RECTS = [
     pygame.Rect(650,590,160,200),
 ]
 
-AMMO = [
-    
-]
-
 WALLS = [
     # left wall
     pygame.Rect(0, 0, 10, SCREEN.get_height()),
@@ -39,6 +35,8 @@ WALLS = [
     # upper wall
     pygame.Rect(0, 0, SCREEN.get_width(), 10),
 ]
+
+WANDER_NODES_IDX = [45, 1135, 2500, 500, 800, 2700, 3100, 1200]
 
 def is_on_obstacle_border(nx, ny, border_tolerance=1):
     if SCREEN.get_at((nx, ny)) == MAP_COLOR:
@@ -141,3 +139,21 @@ def cast_ray(start, direction, max_distance):
                         min_distance = dist
 
     return closest_intersection or end
+
+
+def closest_point_on_segment(point, segment_start, segment_end):
+    segment_vector = segment_end - segment_start
+    point_vector = point - segment_start
+    segment_length_squared = segment_vector.length_squared()
+
+    if segment_length_squared == 0:
+        return segment_start
+
+    t = max(0, min(1, point_vector.dot(segment_vector) / segment_length_squared))
+    return segment_start + t * segment_vector
+
+
+def closest_point_to_rect(point, rect):
+    clamped_x = max(rect.left, min(point.x, rect.right))
+    clamped_y = max(rect.top, min(point.y, rect.bottom))
+    return pygame.Vector2(clamped_x, clamped_y)
