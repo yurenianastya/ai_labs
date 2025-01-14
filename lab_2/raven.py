@@ -44,78 +44,54 @@ class RavenGame:
 class RavenBot:
 
     def __init__(self, spawn_node, graph):
-        self.brain = GoalThink(self)
-        self.sensory_memory = SensoryMemory(self, 15.0)
-        self.targeting_system = TargetingSystem(self)
         self.steering_behaviors = sb.SteeringBehavior(self)
+        self.position = pygame.Vector2(spawn_node.x, spawn_node.y)
+        self.velocity = pygame.Vector2(0, 0)
         self.graph = graph
         self.path = []
         self.current_target = None
-        self.goal = self.graph.nodes.get(utils.WANDER_NODES_IDX[0])                  
+        self.current_node = spawn_node
+        self.goals = utils.WANDER_NODES_IDX
+        self.goal_index = 0
         self.radius = 5
-        self.node = spawn_node
-        self.position = pygame.Vector2(spawn_node.x, spawn_node.y)
-        self.velocity = pygame.Vector2(0, 0)
-        self.avoidance_radius = 10
+        self.react_radius = 10
         self.max_speed = 100
 
     def update(self, dt):
-        self.brain.process()
         self.update_movement(dt)
-        # if self.vision_update_regulator.is_ready():
-        #     self.sensory_memory.update_vision()
-        # if self.target_selection_regulator.is_ready():
-        #     self.targeting_system.update()
-        # if self.goal_arbitration_regulator.is_ready():
-        #     self.brain.arbitrate()
-        # if self.weapon_selection_regulator.is_ready():
-        #     self.weapon_system.select_weapon()
-        # self.weapon_system.take_aim_and_shoot()
 
 
     def update_movement(self, dt):
-        
-        if self.dynamic_condition_met():
-            self.replan_path()
-        
 
-        if self.path:
-            if not self.current_target:
-                self.current_target = self.path.pop(0)
+        if not self.current_target and self.path:
+            self.current_target = self.path.pop(0)
 
-            target_position = self.current_target.position
+        if self.current_target:
+            target_position = pygame.Vector2(self.current_target.position)
             steering_force = self.steering_behaviors.seek(target_position)
-            self.velocity += steering_force
-            if self.velocity.length() > 0.01:
-                self.velocity.normalize() * min(self.velocity.length(), self.max_speed)
-            else:
-                self.velocity = pygame.Vector2(0, 0)
+            self.velocity += steering_force 
+
+            if self.velocity.length() > self.max_speed:
+                self.velocity = self.velocity.normalize() * self.max_speed
             
             self.position += self.velocity * dt
 
-            if self.position.distance_to(target_position) < 5:
+            if self.position.distance_to(target_position) < self.react_radius:
                 if self.path:
                     self.current_target = self.path.pop(0)
                 else:
-                    current_index = utils.WANDER_NODES_IDX.index(self.current_target.index)
-                    next_index = (current_index + 1) % len(utils.WANDER_NODES_IDX)
-                    self.current_target = self.graph.nodes.get(utils.WANDER_NODES_IDX[next_index])
+                    self.current_node = self.goals[self.goal_index]
+                    self.goal_index = (self.goal_index + 1) % len(self.goals)
+                    self.calculate_path()
 
 
-    def dynamic_condition_met(self):
-        if self.path and self.current_target:
-            return self.position.distance_to(self.current_target.position) > 50
-
-        if not self.path and not self.current_target:
-            return True
-
-        return False
-
-
-    def replan_path(self):
-        self.path = self.graph.a_star(self.node.index, self.goal)
-        self.current_target = None
-
+    def calculate_path(self):
+        if self.goal_index >= len(self.goals):
+            self.goal_index = 0
+        goal_node = self.goals[self.goal_index]
+        self.path = self.graph.a_star(self.current_node, goal_node)
+        if self.path:
+            self.current_target = self.path.pop(0)
 
 class MemoryRecord:
     time_last_sensed: int = 0

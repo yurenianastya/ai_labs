@@ -62,6 +62,8 @@ def handle_events():
             return False
     return True
 
+for bot in BOTS:
+    bot.calculate_path()
 
 running = True
 while running:
