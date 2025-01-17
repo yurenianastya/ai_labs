@@ -1,4 +1,3 @@
-import random
 import pygame
 import utils
 
@@ -11,18 +10,10 @@ class SteeringBehavior:
     def calculate(self):
 
         total_force = pygame.Vector2(0, 0)
-        avoid_force = self.avoid()
-        total_force += avoid_force * 0.9
 
+        seek_force = self.seek(self.bot.current_target.position)
 
-        if avoid_force.length() > 0.1:
-            return total_force
-        
-        wander_force = self.wander()
-        total_force += wander_force * 0.4
-        # elif self.behavior == "seek" and self.target_position:
-        #     seek_force = self.bot.steering_behaviors.seek(self.bot.target_position)
-        #     total_force += seek_force
+        total_force += seek_force
 
         return total_force
 
@@ -35,6 +26,7 @@ class SteeringBehavior:
         else:
             return pygame.Vector2(0, 0)
 
+
     def flee(self, target_position):
         desired_velocity = self.bot.position - target_position
         if desired_velocity.length() > 0:
@@ -43,6 +35,7 @@ class SteeringBehavior:
             return steering
         else:
             return pygame.Vector2(0, 0)
+
 
     def arrive(self, target_position, slowing_radius):
         to_target = target_position - self.bot.position
@@ -54,22 +47,6 @@ class SteeringBehavior:
         steering = desired_velocity - self.bot.velocity
         return steering
 
-    def wander(self):
-        if not self.bot.goal or not self.bot.path:
-            self.bot.goal = self.bot.graph.nodes.get(random.choice(utils.WANDER_NODES_IDX))
-            self.bot.path = self.bot.graph.a_star(self.bot.node, self.bot.goal)
-
-        if self.bot.path:
-            next_node = self.bot.path[0]
-            target_position = next_node.position
-            steering_force = self.seek(target_position)
-
-            if self.bot.position.distance_to(target_position) < 5:
-                self.bot.path.pop(0)
-
-            return steering_force
-        
-        return pygame.Vector2(0, 0)
 
     def avoid(self):
         for polygon in utils.POLYGONS:

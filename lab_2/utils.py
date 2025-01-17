@@ -8,7 +8,7 @@ OBSTACLE_COLOR = (40, 148, 0)
 NODE_COLOR = (255, 0, 0)
 EDGE_COLOR = (0, 0, 200)
 MAP_COLOR = (255, 255, 255)
-BOT_COLOR = (127, 0, 255)
+BOT_COLOR = (179, 0, 255)
 CELL_SIZE = 20
 
 POLYGONS = [
@@ -36,7 +36,7 @@ WALLS = [
     pygame.Rect(0, 0, SCREEN.get_width(), 10),
 ]
 
-WANDER_NODES_IDX = [1135, 2500, 500, 800, 2700, 3100, 1200]
+WANDER_NODES_IDX = [1859, 58, 492, 1068, 584, 1441, 3030, 1929, 2375, 1221, 2622]
 
 def is_on_obstacle_border(nx, ny, border_tolerance=1):
     if SCREEN.get_at((nx, ny)) == MAP_COLOR:
@@ -79,7 +79,6 @@ def line_intersection(p1, p2, q1, q2):
         return (c[1] - a[1]) * (b[0] - a[0]) > (b[1] - a[1]) * (c[0] - a[0])
 
     if ccw(p1, q1, q2) != ccw(p2, q1, q2) and ccw(p1, p2, q1) != ccw(p1, p2, q2):
-        # Compute intersection point
         s1_x = p2[0] - p1[0]
         s1_y = p2[1] - p1[1]
         s2_x = q2[0] - q1[0]
@@ -123,7 +122,7 @@ def cast_ray(start, direction, max_distance):
                         closest_intersection = intersection
                         min_distance = dist
 
-    for rect in RECTS:
+    for rect in RECTS + WALLS:
         corners = [
             rect.topleft, rect.topright, rect.bottomright, rect.bottomleft
         ]
@@ -157,3 +156,15 @@ def closest_point_to_rect(point, rect):
     clamped_x = max(rect.left, min(point.x, rect.right))
     clamped_y = max(rect.top, min(point.y, rect.bottom))
     return pygame.Vector2(clamped_x, clamped_y)
+
+def rect_edges(rect):
+    top_left = pygame.Vector2(rect.topleft)
+    top_right = pygame.Vector2(rect.topright)
+    bottom_left = pygame.Vector2(rect.bottomleft)
+    bottom_right = pygame.Vector2(rect.bottomright)
+    return [
+        (top_left, top_right),
+        (top_right, bottom_right),
+        (bottom_right, bottom_left),
+        (bottom_left, top_left),
+    ]

@@ -1,4 +1,5 @@
 import pygame
+import pygame.gfxdraw
 import graph
 import utils
 import raven
@@ -49,9 +50,25 @@ def draw_path(path, surface, start_node, goal_node):
     pygame.draw.circle(surface, utils.EDGE_COLOR, (goal_node.x, goal_node.y), 8)
 
 
+def draw_bots_fov_cone(bot, screen):
+    forward_vector = bot.velocity.normalize() if bot.velocity.length() > 0 else pygame.Vector2(1, 0)
+    left_vector = forward_vector.rotate(bot.fov_angle / 2) * bot.fov_range
+    right_vector = forward_vector.rotate(-bot.fov_angle / 2) * bot.fov_range
+
+    fov_color = (100, 100, 255, 80)
+    pygame.gfxdraw.filled_polygon(
+        screen, [
+            (int(bot.position.x), int(bot.position.y)),
+            (int(bot.position.x + left_vector.x), int(bot.position.y + left_vector.y)),
+            (int(bot.position.x + right_vector.x), int(bot.position.y + right_vector.y))
+        ],
+        fov_color
+    )
+
 def draw_bots(bots, surface):
     for bot in bots:
-        pygame.draw.circle(surface, utils.BOT_COLOR, bot.position, 8)
+        pygame.draw.circle(surface, utils.BOT_COLOR, bot.position, bot.radius)
+        draw_bots_fov_cone(bot, surface)
 
 
 def handle_events():
@@ -72,8 +89,9 @@ while running:
         break
 
     dt = utils.CLOCK.tick(60) / 1000.0
+    
     for bot in BOTS:
-        bot.update(dt)
+        bot.update(dt, BOTS)
 
     utils.SCREEN.fill(utils.MAP_COLOR)
 
