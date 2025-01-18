@@ -8,7 +8,7 @@ OBSTACLE_COLOR = (40, 148, 0)
 NODE_COLOR = (255, 0, 0)
 EDGE_COLOR = (0, 0, 200)
 MAP_COLOR = (255, 255, 255)
-BOT_COLOR = (179, 0, 255)
+AGENT_COLOR = (179, 0, 255)
 CELL_SIZE = 20
 
 POLYGONS = [
@@ -36,7 +36,7 @@ WALLS = [
     pygame.Rect(0, 0, SCREEN.get_width(), 10),
 ]
 
-WANDER_NODES_IDX = [1859, 58, 492, 1068, 584, 1441, 3030, 1929, 2375, 1221, 2622]
+WANDER_NODES_IDX = [1859, 3030, 584, 2375, 58, 1000]
 
 def is_on_obstacle_border(nx, ny, border_tolerance=1):
     if SCREEN.get_at((nx, ny)) == MAP_COLOR:
@@ -60,6 +60,20 @@ def is_on_obstacle_border(nx, ny, border_tolerance=1):
         return False
     return True
 
+def is_edge_node(node, graph):
+    min_x = min(node.x for node in graph.nodes.values())
+    max_x = max(node.x for node in graph.nodes.values())
+    min_y = min(node.y for node in graph.nodes.values())
+    max_y = max(node.y for node in graph.nodes.values())
+    return (node.x == min_x or node.x == max_x or node.y == min_y or node.y == max_y)
+
+def is_item_too_close(new_item, existing_items, min_distance=30):
+        for item in existing_items:
+            distance = math.sqrt((new_item.position.x - item.position.x)**2
+              + (new_item.position.y - item.position.y)**2)
+            if distance < min_distance:  
+                return True
+        return False
 
 def create_and_draw_obstacles():
     for rects in RECTS:
@@ -168,3 +182,14 @@ def rect_edges(rect):
         (bottom_right, bottom_left),
         (bottom_left, top_left),
     ]
+
+def get_nodes_within_flee_range(graph, target_position, min_distance, max_distance):
+    valid_nodes = []
+    for node in graph.nodes:
+        distance = euclidean_distance(node.position, target_position)
+        if min_distance <= distance <= max_distance:
+            valid_nodes.append(node)
+    return valid_nodes
+
+def euclidean_distance(a, b):
+    return math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
