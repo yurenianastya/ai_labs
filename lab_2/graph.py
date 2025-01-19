@@ -46,6 +46,8 @@ class Graph:
             self.nodes[node.index] = node
             self.edges[node.index] = []
 
+    def get_node_by_index(self, index):
+        return self.nodes[index]
 
     def add_edge(self, from_index, to_index, cost):
         
@@ -115,7 +117,6 @@ class Graph:
                     f_score[edge.to_node] = g_score[edge.to_node] + self.heuristic(self.nodes[edge.to_node], self.nodes[goal_index])
                     if edge.to_node not in [i[1] for i in open_set]:
                         heapq.heappush(open_set, (f_score[edge.to_node], edge.to_node))
-
         return None
     
     
@@ -175,3 +176,17 @@ class Graph:
             total_path.append(self.nodes[current])
         total_path.reverse()
         return total_path
+    
+    
+    def path_to_closest_item(self, start_node, items):
+        closest_path = None
+        min_cost = float('inf')
+
+        for item in items:
+            path = self.a_star(start_node, item.node)
+            if path:
+                cost = len(path) - 1
+                if cost < min_cost:
+                    min_cost = cost
+                    closest_path = path
+        return closest_path

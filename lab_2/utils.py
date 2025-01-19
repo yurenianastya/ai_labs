@@ -10,6 +10,7 @@ EDGE_COLOR = (0, 0, 200)
 MAP_COLOR = (255, 255, 255)
 AGENT_COLOR = (179, 0, 255)
 CELL_SIZE = 20
+SHOTS = []
 
 POLYGONS = [
     [(500, 500), (600, 300), (700, 300), (800, 500)],
@@ -193,3 +194,8 @@ def get_nodes_within_flee_range(graph, target_position, min_distance, max_distan
 
 def euclidean_distance(a, b):
     return math.sqrt((a.x - b.x) ** 2 + (a.y - b.y) ** 2)
+
+def remove_agent(agent, all_agents):
+    if agent in all_agents:
+        all_agents.remove(agent)
+    pass

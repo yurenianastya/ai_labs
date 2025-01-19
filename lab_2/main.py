@@ -9,31 +9,34 @@ import entity
 pygame.init()
 map_graph = graph.Graph()
 map_graph.generate_graph()
+items = entity.PickupItem.generate_items(map_graph)
 
 agents = [
     entity.Agent(
         map_graph.nodes.get(45),
         map_graph,
-        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random())
+        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random()),
+        items
     ),
     entity.Agent(
         map_graph.nodes.get(3100),
         map_graph,
-        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random())
+        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random()),
+        items
     ),
     entity.Agent(
         map_graph.nodes.get(500),
         map_graph,
-        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random())
+        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random()),
+        items
     ),
     entity.Agent(
         map_graph.nodes.get(1200),
         map_graph,
-        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random())
+        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random()),
+        items
     ),
 ]
-
-items = entity.PickupItem.generate_items(map_graph)
 
 def draw_graph(graph, surface):
     for node in graph.nodes:
@@ -57,9 +60,8 @@ def draw_path(path, surface, start_node, goal_node):
 
 
 def draw_agents_fov_cone(agent, screen):
-    forward_vector = agent.velocity.normalize() if agent.velocity.length() > 0 else pygame.Vector2(1, 0)
-    left_vector = forward_vector.rotate(agent.fov_angle / 2) * agent.fov_range
-    right_vector = forward_vector.rotate(-agent.fov_angle / 2) * agent.fov_range
+    left_vector = agent.forward_vector.rotate(agent.fov_angle / 2) * agent.fov_range
+    right_vector = agent.forward_vector.rotate(-agent.fov_angle / 2) * agent.fov_range
 
     fov_color = (100, 100, 255, 80)
     pygame.gfxdraw.filled_polygon(
@@ -74,8 +76,17 @@ def draw_agents_fov_cone(agent, screen):
 def draw_agents(agents, surface):
     for agent in agents:
         pygame.draw.circle(surface, utils.AGENT_COLOR, agent.position, agent.radius)
-        draw_agents_fov_cone(agent, surface)
+        # draw_agents_fov_cone(agent, surface)
         draw_hit_bars(agent, surface)
+
+def draw_shots(surface, dt):
+    shots_to_draw = utils.SHOTS[:]
+    for shot in shots_to_draw:
+        start_pos, end_pos, time_left = shot
+        pygame.draw.line(surface, (255, 0, 0), start_pos, end_pos, 2)
+        utils.SHOTS.remove(shot)
+        if time_left > dt:
+            utils.SHOTS.append((start_pos, end_pos, time_left - dt))
 
 def draw_item(item, surface):
         x = item.position.x
@@ -137,13 +148,11 @@ def handle_events():
 
 def check_agent_on_item(agent, items):
     for item in items:
-        if abs(agent.position.x - item.position.x) <= 3 and abs(agent.position.y - item.position.y) <= 3:
+        if abs(agent.position.x - item.position.x) <= 5 and abs(agent.position.y - item.position.y) <= 5:
             if item.item_type == "health":
-                agent.health = min(agent.max_health, agent.health + 20)
-                print(f"Бот {agent} отримав +20 здоров'я. Поточне: {agent.health}")
+                agent.health = agent.health = agent.max_health
             elif item.item_type == "armor":
-                agent.pick_up_armor()  # Збільшуємо броню
-                print(f"Бот {agent} отримав броню.")
+                agent.pick_up_armor()
             item.respawn()
 
 for agent in agents:
@@ -157,8 +166,8 @@ while running:
 
     dt = utils.CLOCK.tick(60) / 1000.0
     for agent in agents:
-        agent.update(dt, agents)
         check_agent_on_item(agent, items)
+        agent.update(dt, agents)        
 
     utils.SCREEN.fill(utils.MAP_COLOR)
 
@@ -166,6 +175,7 @@ while running:
     draw_graph(map_graph, utils.SCREEN)
     draw_agents(agents, utils.SCREEN)
     draw_pickup_items(items, utils.SCREEN)
+    draw_shots(utils.SCREEN, dt)
 
     pygame.display.flip()
 
