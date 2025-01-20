@@ -1,4 +1,3 @@
-import random
 import pygame
 import pygame.gfxdraw
 import graph
@@ -15,25 +14,21 @@ agents = [
     entity.Agent(
         map_graph.nodes.get(45),
         map_graph,
-        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random()),
         items
     ),
     entity.Agent(
         map_graph.nodes.get(3100),
         map_graph,
-        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random()),
         items
     ),
     entity.Agent(
         map_graph.nodes.get(500),
         map_graph,
-        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random()),
         items
     ),
     entity.Agent(
         map_graph.nodes.get(1200),
         map_graph,
-        sorted(utils.WANDER_NODES_IDX, key=lambda x: random.random()),
         items
     ),
 ]
@@ -48,20 +43,11 @@ def draw_graph(graph, surface):
     for node in graph.nodes.values():
         x, y = node.x, node.y
         pygame.draw.circle(surface, utils.NODE_COLOR, (x, y), 2)
-    
-
-def draw_path(path, surface, start_node, goal_node):
-    if path and len(path) > 1:
-        points = [(node.x, node.y) for node in path]
-        pygame.draw.lines(surface, (0,0,0), False, points, 5)
-
-    pygame.draw.circle(surface, utils.AGENT_COLOR, (start_node.x, start_node.y), 8)
-    pygame.draw.circle(surface, utils.EDGE_COLOR, (goal_node.x, goal_node.y), 8)
-
 
 def draw_agents_fov_cone(agent, screen):
-    left_vector = agent.forward_vector.rotate(agent.fov_angle / 2) * agent.fov_range
-    right_vector = agent.forward_vector.rotate(-agent.fov_angle / 2) * agent.fov_range
+    forward_vector = agent.velocity.normalize() if agent.velocity.length() > 0 else pygame.Vector2(1, 0)
+    left_vector = forward_vector.rotate(agent.fov_angle / 2) * agent.fov_range
+    right_vector = forward_vector.rotate(-agent.fov_angle / 2) * agent.fov_range
 
     fov_color = (100, 100, 255, 80)
     pygame.gfxdraw.filled_polygon(
@@ -76,7 +62,10 @@ def draw_agents_fov_cone(agent, screen):
 def draw_agents(agents, surface):
     for agent in agents:
         pygame.draw.circle(surface, utils.AGENT_COLOR, agent.position, agent.radius)
-        # draw_agents_fov_cone(agent, surface)
+        if agent.path:
+            for i in range(len(agent.path) - 1):
+                pygame.draw.line(surface, utils.EDGE_COLOR, agent.path[i].position, agent.path[i + 1].position, 4)
+        draw_agents_fov_cone(agent, surface)
         draw_hit_bars(agent, surface)
 
 def draw_shots(surface, dt):
@@ -148,7 +137,7 @@ def handle_events():
 
 def check_agent_on_item(agent, items):
     for item in items:
-        if abs(agent.position.x - item.position.x) <= 5 and abs(agent.position.y - item.position.y) <= 5:
+        if abs(agent.position.x - item.position.x) <= 10 and abs(agent.position.y - item.position.y) <= 10:
             if item.item_type == "health":
                 agent.health = agent.health = agent.max_health
             elif item.item_type == "armor":

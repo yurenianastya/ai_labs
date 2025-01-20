@@ -8,9 +8,9 @@ class SteeringBehavior:
 
     def calculate(self):
         total_force = pygame.Vector2(0, 0)
-        if self.agent.current_target:
-            seek_force = self.seek(self.agent.current_target.position)
-            total_force += seek_force
+
+        seek_force = self.seek(self.agent.current_target.position)
+            
         total_force += seek_force
         return total_force
 

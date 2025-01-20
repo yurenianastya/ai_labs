@@ -89,10 +89,9 @@ class Graph:
     
 
     def heuristic(self, node1, node2):
-        dx = node1.x - node2.x
-        dy = node1.y - node2.y
-        return math.sqrt(dx**2 + dy**2)
-    
+        dx = abs(node1.x - node2.x)
+        dy = abs(node1.y - node2.y)
+        return max(dx, dy)
 
     def a_star(self, start_index, goal_index):
         open_set = []
@@ -183,10 +182,11 @@ class Graph:
         min_cost = float('inf')
 
         for item in items:
-            path = self.a_star(start_node, item.node)
+            path = self.a_star(start_node.index, item.node.index)
             if path:
                 cost = len(path) - 1
                 if cost < min_cost:
                     min_cost = cost
                     closest_path = path
+
         return closest_path

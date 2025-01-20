@@ -37,8 +37,6 @@ WALLS = [
     pygame.Rect(0, 0, SCREEN.get_width(), 10),
 ]
 
-WANDER_NODES_IDX = [1859, 3030, 584, 2375, 58, 1000]
-
 def is_on_obstacle_border(nx, ny, border_tolerance=1):
     if SCREEN.get_at((nx, ny)) == MAP_COLOR:
         return True
