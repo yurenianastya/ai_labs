@@ -48,6 +48,7 @@ class FSM:
             return "pursuit"
         
         self.agent.target_enemy_node = None
+
         return "random_walk"
     
     def update_state(self, all_agents):

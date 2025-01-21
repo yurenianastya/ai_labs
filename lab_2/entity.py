@@ -11,7 +11,7 @@ class Agent:
         self.steering_behaviors = behaviors.SteeringBehavior(self)
         self.position = pygame.Vector2(spawn_node.x, spawn_node.y)
         self.velocity = pygame.Vector2(0, 0)
-        self.max_speed = 75
+        self.max_speed = 80
         self.fov_angle = 60
         self.fov_range = 250
         self.graph = graph
@@ -98,14 +98,10 @@ class Agent:
                             return agent
         return None
     
-    def get_closest_item(self, type):
+    def get_closest_item(self):
         forward_vector = self.velocity.normalize() if self.velocity.length() > 0 else pygame.Vector2(1, 0)
-        items = self.items
 
-        if type == "only_health":
-            items = [obj for obj in self.items if obj.item_type == "health"]
-
-        for item in items:
+        for item in self.items:
             direction_to_agent = (item.position - self.position).normalize()
             distance_to_agent = self.position.distance_to(item.position)
 

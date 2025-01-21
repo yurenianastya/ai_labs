@@ -62,13 +62,13 @@ def draw_agents_fov_cone(agent, screen):
 def draw_agents(agents, surface):
     for agent in agents:
         pygame.draw.circle(surface, utils.AGENT_COLOR, agent.position, agent.radius)
-        if agent.path:
-            for i in range(len(agent.path) - 1):
-                pygame.draw.line(surface, utils.EDGE_COLOR, agent.path[i].position, agent.path[i + 1].position, 4)
-        if agent.current_node:
-            pygame.draw.circle(surface, utils.EDGE_COLOR, agent.current_node.position, 6)
-        if agent.current_target:
-            pygame.draw.circle(surface, utils.EDGE_COLOR, agent.current_target.position, 4)
+        # if agent.path:
+        #     for i in range(len(agent.path) - 1):
+        #         pygame.draw.line(surface, utils.EDGE_COLOR, agent.path[i].position, agent.path[i + 1].position, 4)
+        # if agent.current_node:
+        #     pygame.draw.circle(surface, utils.EDGE_COLOR, agent.current_node.position, 6)
+        # if agent.current_target:
+        #     pygame.draw.circle(surface, utils.EDGE_COLOR, agent.current_target.position, 4)
         draw_agents_fov_cone(agent, surface)
         draw_hit_bars(agent, surface)
 
