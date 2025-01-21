@@ -31,7 +31,7 @@ class FSM:
         self.state = "random_walk"
 
     def calculate_state(self, all_agents):
-        if self.agent.health <= 40 and self.agent.armor <= 40:
+        if self.agent.health <= 40 and self.agent.armor <= 20:
             return "seek_item"
 
         enemy_in_fov = self.agent.get_first_enemy_in_fov(all_agents)

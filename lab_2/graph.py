@@ -1,5 +1,4 @@
 import heapq
-import math
 import pygame
 import utils
 from collections import deque

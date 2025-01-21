@@ -13,7 +13,7 @@ class Agent:
         self.velocity = pygame.Vector2(0, 0)
         self.max_speed = 80
         self.fov_angle = 60
-        self.fov_range = 250
+        self.fov_range = 200
         self.graph = graph
         self.items = items
         self.path = []
