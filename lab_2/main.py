@@ -14,7 +14,7 @@ agents = [
     entity.Agent(
         map_graph.nodes.get(45),
         map_graph,
-        items
+        items,
     ),
     entity.Agent(
         map_graph.nodes.get(3100),
@@ -65,6 +65,10 @@ def draw_agents(agents, surface):
         if agent.path:
             for i in range(len(agent.path) - 1):
                 pygame.draw.line(surface, utils.EDGE_COLOR, agent.path[i].position, agent.path[i + 1].position, 4)
+        if agent.current_node:
+            pygame.draw.circle(surface, utils.EDGE_COLOR, agent.current_node.position, 6)
+        if agent.current_target:
+            pygame.draw.circle(surface, utils.EDGE_COLOR, agent.current_target.position, 4)
         draw_agents_fov_cone(agent, surface)
         draw_hit_bars(agent, surface)
 
@@ -156,7 +160,9 @@ while running:
     dt = utils.CLOCK.tick(60) / 1000.0
     for agent in agents:
         check_agent_on_item(agent, items)
-        agent.update(dt, agents)        
+        agent.update(dt, agents)
+        if agent.is_dead:
+            agents.remove(agent)
 
     utils.SCREEN.fill(utils.MAP_COLOR)
 

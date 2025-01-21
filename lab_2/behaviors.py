@@ -22,3 +22,37 @@ class SteeringBehavior:
             return steering
         else:
             return pygame.Vector2(0, 0)
+        
+
+class FSM:
+
+    def __init__(self, agent):
+        self.agent = agent
+        self.state = "random_walk"
+
+    def calculate_state(self, all_agents):
+        if self.agent.health <= 40 and self.agent.armor <= 40:
+            return "seek_item"
+
+        enemy_in_fov = self.agent.get_first_enemy_in_fov(all_agents)
+
+        if enemy_in_fov:
+            self.agent.target_enemy_node = enemy_in_fov.current_node
+            self.agent.check_and_shoot(enemy_in_fov)
+            return "fight"
+        
+        if self.agent.target_enemy_node:
+            if self.agent.current_node == self.agent.target_enemy_node:
+                self.agent.target_enemy_node = None
+                return "random_walk"
+            return "pursuit"
+        
+        self.agent.target_enemy_node = None
+        return "random_walk"
+    
+    def update_state(self, all_agents):
+        new_state = self.calculate_state(all_agents)
+
+        if new_state != self.state:
+            self.state = new_state
+            self.agent.calculate_path()
